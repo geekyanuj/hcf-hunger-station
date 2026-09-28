@@ -1,0 +1,7 @@
+{
+  "name": "@hfc/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Reserved for cross-app shared types/constants once the API and web app are extracted to consume a common contract package. Not wired into apps/api or apps/web yet in Part 1 — see docs/ARCHITECTURE.md 'Known Limitations'.",
+  "main": "index.ts"
+}
