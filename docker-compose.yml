@@ -17,6 +17,11 @@ services:
       timeout: 5s
       retries: 5
 
+  # Used for one concrete purpose: caching the public menu read endpoint
+  # (GET /menu) and, optionally, as a shared store for express-rate-limit in
+  # a multi-instance deployment. The API degrades gracefully (falls back to
+  # direct MongoDB reads) if this service is stopped or unreachable — see
+  # apps/api/src/config/redis.ts. Not a hard dependency.
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -30,6 +35,58 @@ services:
       timeout: 5s
       retries: 5
 
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-hfc_admin}:${MONGO_ROOT_PASSWORD:-change_me_strong_password}@mongo:27017/hfc_ros?authSource=admin
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_me_access_secret_min_32_chars}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_refresh_secret_min_32_chars}
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-MOCK}
+      PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-change_me_webhook_secret}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      JUSPAY_ENV: ${JUSPAY_ENV:-sandbox}
+      JUSPAY_MERCHANT_ID: ${JUSPAY_MERCHANT_ID:-}
+      JUSPAY_KEY_UUID: ${JUSPAY_KEY_UUID:-}
+      JUSPAY_PAYMENT_PAGE_CLIENT_ID: ${JUSPAY_PAYMENT_PAGE_CLIENT_ID:-}
+      JUSPAY_PUBLIC_KEY_PATH: /run/secrets/juspay/public.key
+      JUSPAY_PRIVATE_KEY_PATH: /run/secrets/juspay/private.key
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4001}
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - '4001:4000'
+    volumes:
+      - api_uploads:/app/uploads
+      - ${JUSPAY_SECRETS_DIR:-./secrets/juspay}:/run/secrets/juspay:ro
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:4001/api/v1}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:4001}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '5174:80'
+
 volumes:
   mongo_data:
   redis_data:
+  api_uploads:
