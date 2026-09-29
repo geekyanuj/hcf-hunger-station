@@ -27,6 +27,12 @@ export interface RefundPaymentResult {
   refundReferenceId: string;
 }
 
+export interface WebhookResult {
+  providerReferenceId: string;
+  providerPaymentId?: string;
+  status: 'SUCCESS' | 'FAILED';
+}
+
 /**
  * Payment abstraction. Every concrete gateway (Razorpay, PhonePe, Paytm, etc.)
  * implements this interface so order/payment services never depend on a
@@ -38,5 +44,5 @@ export interface PaymentProvider {
   verifyPayment(providerReferenceId: string): Promise<VerifyPaymentResult>;
   refundPayment(input: RefundPaymentInput): Promise<RefundPaymentResult>;
   /** Validates and parses an incoming webhook payload from the provider. */
-  handleWebhook(rawBody: unknown, signature?: string): Promise<{ providerReferenceId: string; status: 'SUCCESS' | 'FAILED' }>;
+  handleWebhook(rawBody: unknown, signature?: string, rawPayload?: Buffer): Promise<WebhookResult>;
 }

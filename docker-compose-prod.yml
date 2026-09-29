@@ -50,8 +50,18 @@ services:
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      PAYMENT_PROVIDER: MOCK
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-MOCK}
       PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-change_me_webhook_secret}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+      JUSPAY_ENV: ${JUSPAY_ENV:-sandbox}
+      JUSPAY_MERCHANT_ID: ${JUSPAY_MERCHANT_ID:-}
+      JUSPAY_KEY_UUID: ${JUSPAY_KEY_UUID:-}
+      JUSPAY_PAYMENT_PAGE_CLIENT_ID: ${JUSPAY_PAYMENT_PAGE_CLIENT_ID:-}
+      JUSPAY_PUBLIC_KEY_PATH: /run/secrets/juspay/public.key
+      JUSPAY_PRIVATE_KEY_PATH: /run/secrets/juspay/private.key
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4001}
     depends_on:
       mongo:
         condition: service_healthy
@@ -61,6 +71,7 @@ services:
       - '4001:4000'
     volumes:
       - api_uploads:/app/uploads
+      - ${JUSPAY_SECRETS_DIR:-./secrets/juspay}:/run/secrets/juspay:ro
 
   web:
     build:

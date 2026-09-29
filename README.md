@@ -57,8 +57,11 @@ Key variables (see `.env.example` for the full list and defaults):
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing secrets — **must** be changed in production |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | Token lifetimes (default 15m / 7d) |
 | `CORS_ORIGIN` | Allowed frontend origin |
-| `PAYMENT_PROVIDER` | `MOCK` (see §8 and `docs/SECURITY.md`) |
-| `PAYMENT_WEBHOOK_SECRET` | HMAC secret webhooks are signed/verified with — **must** be changed in production |
+| `PAYMENT_PROVIDER` | `MOCK`, `RAZORPAY`, or `JUSPAY`; change in `.env` and recreate the API container |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Razorpay API credentials when `PAYMENT_PROVIDER=RAZORPAY` |
+| `RAZORPAY_WEBHOOK_SECRET` | Razorpay webhook signing secret; configure `/api/v1/payments/webhook/razorpay` for `payment_link.paid`, `payment_link.cancelled`, and `payment_link.expired` |
+| `JUSPAY_*` | Juspay merchant, client, environment, and key-file settings when `PAYMENT_PROVIDER=JUSPAY`; payment status is confirmed through the Juspay status API, but refunds are not implemented |
+| `PAYMENT_WEBHOOK_SECRET` | Mock-provider webhook secret |
 | `VITE_API_BASE_URL` / `VITE_SOCKET_URL` | Frontend → API/socket endpoints |
 
 Never commit a real `.env` file. Secrets are read only from environment
@@ -176,12 +179,10 @@ integration) knows exactly what to plug in.
 
 **From Part 3:**
 
-- **Payment gateway is still the mock provider**, now with a real,
-  HMAC-verified webhook path and split/partial payments. No real Indian
-  payment gateway (Razorpay/PhonePe/etc.) credentials are wired in —
-  swapping one in means implementing `PaymentProvider` once (see
-  `services/payment/`) and switching the webhook route to raw-body
-  verification (see `docs/SECURITY.md`).
+- **Payment providers can be selected by env**: Razorpay hosted Payment
+  Links and Juspay hosted checkout with server-side status verification are
+  wired. Razorpay supports signed webhook settlement and refunds. Juspay
+  refunds are not implemented yet (see `docs/SECURITY.md`).
 - **Loyalty tiers, birthday offers, and referral bonuses are not built.**
   The ledger and config architecture (`LoyaltyConfig`, `LoyaltyTransaction`)
   is deliberately shaped so these can be added without a schema migration,

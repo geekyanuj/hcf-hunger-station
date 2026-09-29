@@ -3,10 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { sendSuccess } from "../utils/apiResponse";
 import { ApiError } from "../utils/ApiError";
 import { PaymentService } from "../services/payment.service";
-import {
-  verifyWebhookSignature,
-  signWebhookPayload,
-} from "../utils/webhookSignature";
+import { signWebhookPayload } from "../utils/webhookSignature";
 import { env } from "../config/env";
 import { actorFromAuth } from "../services/orderStateMachine";
 
@@ -22,18 +19,29 @@ export const PaymentController = {
     return sendSuccess(res, result, "Payment initiated", 201);
   }),
 
-  /**
-   * Never trust an unsigned webhook — see utils/webhookSignature.ts. A
-   * request without a valid HMAC signature is rejected before it ever
-   * reaches PaymentService, so a forged "payment successful" callback
-   * cannot mark an order as paid.
-   */
+  /** Provider-specific verification runs before a webhook can update a payment. */
   webhook: asyncHandler(async (req: Request, res: Response) => {
-    const signature = req.headers["x-webhook-signature"] as string | undefined;
+    const signature = (
+      req.headers["x-razorpay-signature"] ??
+      req.headers["x-juspay-signature"] ??
+      req.headers["x-webhook-signature"]
+    ) as string | undefined;
 
-    const payment = await PaymentService.handleWebhook(req.body, signature);
+    const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
+    const providerName = typeof req.params.provider === 'string'
+      ? req.params.provider.toUpperCase()
+      : undefined;
+    const payment = await PaymentService.handleWebhook(req.body, signature, rawBody, providerName);
 
     return sendSuccess(res, payment, "Webhook processed");
+  }),
+
+  juspayReturn: asyncHandler(async (req: Request, res: Response) => {
+    const orderId = req.query.order_id;
+    if (typeof orderId === 'string') {
+      await PaymentService.handleWebhook({ order_id: orderId }, undefined, undefined, 'JUSPAY');
+    }
+    return res.redirect(303, env.corsOrigin);
   }),
 
   /**

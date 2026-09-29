@@ -10,26 +10,34 @@ import { AuditService, AuditContext } from './audit.service';
 import { canTransitionPaymentStatus, isRefundState } from './paymentStateMachine';
 import { OrderActor } from './orderStateMachine';
 import { logger } from '../config/logger';
-import { PaymentProvider } from './payment/PaymentProvider';
-import { MockPaymentProvider } from './payment/MockPaymentProvider';
-import { JuspayPaymentProvider } from './payment/JuspayPaymentProvider';
+import { RazorpayPaymentProvider } from './payment/RazorpayPaymentProvider';
 
-function resolveProvider(): PaymentProvider {
-  switch (env.payment.provider) {
-    case 'JUSPAY':
-      return new JuspayPaymentProvider();
+const providerInstances = new Map<string, PaymentProvider>();
 
+async function getProvider(name = env.payment.provider): Promise<PaymentProvider> {
+  const cached = providerInstances.get(name);
+  if (cached) return cached;
+
+  let provider: PaymentProvider;
+  switch (name) {
+    case 'JUSPAY': {
+      const { JuspayPaymentProvider } = await import('./payment/JuspayPaymentProvider');
+      provider = new JuspayPaymentProvider();
+      break;
+    }
+    case 'RAZORPAY':
+      provider = new RazorpayPaymentProvider();
+      break;
     case 'MOCK':
-      return new MockPaymentProvider();
-
+      provider = new MockPaymentProvider();
+      break;
     default:
-      throw new Error(
-        `Unsupported payment provider: ${env.payment.provider}`,
-      );
+      throw new Error(`Unsupported payment provider: ${name}`);
   }
-}
 
-const provider = resolveProvider();
+  providerInstances.set(name, provider);
+  return provider;
+}
 
 /** Sum of all SUCCESS payments recorded against an order so far. */
 async function totalPaid(orderId: string): Promise<number> {
@@ -91,7 +99,7 @@ export const PaymentService = {
     const requestedAmount = amount && amount > 0 ? round2(Math.min(amount, remaining)) : remaining;
     if (requestedAmount <= 0) throw ApiError.conflict('Order is already fully paid');
 
-    const result = await provider.createPayment({ orderId, amount: requestedAmount, method });
+    const result = await (await getProvider()).createPayment({ orderId, amount: requestedAmount, method });
 
     const payment = await Payment.create({
       orderId: order._id,
@@ -114,11 +122,15 @@ export const PaymentService = {
    * Server-side webhook handler - the only source of truth for non-cash
    * payment confirmation. Never trust a client-reported "payment successful".
    */
-  async handleWebhook(rawBody: unknown, signature?: string) {
-    const result = await provider.handleWebhook(rawBody, signature);
+  async handleWebhook(rawBody: unknown, signature?: string, rawPayload?: Buffer, providerName?: string) {
+    const result = await (await getProvider(providerName)).handleWebhook(rawBody, signature, rawPayload);
     const payment = await Payment.findOneAndUpdate(
       { providerReferenceId: result.providerReferenceId },
-      { status: result.status, $push: { rawWebhookPayloads: rawBody as Record<string, unknown> } },
+      {
+        status: result.status,
+        ...(result.providerPaymentId ? { providerPaymentId: result.providerPaymentId } : {}),
+        $push: { rawWebhookPayloads: rawBody as Record<string, unknown> },
+      },
       { new: true }
     );
     if (!payment) throw ApiError.notFound('Payment reference not found');
@@ -162,7 +174,11 @@ export const PaymentService = {
       if (room <= 0 || payment.status !== 'SUCCESS') continue;
       const portion = round2(Math.min(room, remaining));
       if (payment.providerReferenceId) {
-        const result = await provider.refundPayment({ providerReferenceId: payment.providerReferenceId, amount: portion });
+        const refundProvider = await getProvider(payment.provider);
+        const result = await refundProvider.refundPayment({
+          providerReferenceId: payment.providerPaymentId ?? payment.providerReferenceId,
+          amount: portion,
+        });
         if (result.status !== 'REFUNDED') break; // provider refused — stop and report what was actually refunded
       }
       payment.refundedAmount = round2(payment.refundedAmount + portion);

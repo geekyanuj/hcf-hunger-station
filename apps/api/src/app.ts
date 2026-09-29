@@ -23,7 +23,12 @@ export function createApp(): Application {
     })
   );
   app.use(compression());
-  app.use(express.json({ limit: '2mb' }));
+  app.use(express.json({
+    limit: '2mb',
+    verify: (req, _res, buffer) => {
+      (req as express.Request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+    },
+  }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use(sanitizeInput);

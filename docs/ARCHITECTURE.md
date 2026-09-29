@@ -151,9 +151,10 @@ to `PAID` — that only happens (a) synchronously for CASH, or (b) via the
 webhook handler, which is the single source of truth for non-cash payment
 confirmation, per the "never trust client-side payment success" requirement.
 
-To add a real gateway (e.g. Razorpay) in Part 2: implement `PaymentProvider`
-in a new class, and switch on `env.payment.provider` in
-`services/payment.service.ts`'s `resolveProvider()` — no other file changes.
+Razorpay Payment Links and Juspay hosted checkout implement `PaymentProvider`
+and are selected with `PAYMENT_PROVIDER`. Razorpay handles signed webhook
+settlement and refunds. Juspay callbacks trigger a server-side status query;
+Juspay refunds remain unimplemented.
 
 ## 9. Real-time updates (Socket.IO) with polling fallback
 

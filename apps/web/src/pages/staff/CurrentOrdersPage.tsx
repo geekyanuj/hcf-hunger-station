@@ -202,6 +202,10 @@ function RecordPaymentModal({ order, onClose, onDone }: { order: Order | null; o
     // No amount = the full remaining balance is charged (the server computes it from recorded payments).
     mutationFn: () => StaffPaymentApi.initiate((order as Order)._id, method),
     onSuccess: (result) => {
+      if (result.redirectUrl) {
+        window.location.assign(result.redirectUrl);
+        return;
+      }
       push(result.payment?.status === 'SUCCESS' ? 'Payment recorded' : 'Payment initiated — awaiting confirmation', 'success');
       onDone();
       onClose();

@@ -38,8 +38,11 @@ export const env = {
   },
 
   payment: {
-    provider: process.env.PAYMENT_PROVIDER ?? 'MOCK',
+    provider: (process.env.PAYMENT_PROVIDER ?? 'MOCK').toUpperCase(),
     webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev_webhook_secret',
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID,
+    razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET,
+    razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
   },
 
   isProduction: process.env.NODE_ENV === 'production',

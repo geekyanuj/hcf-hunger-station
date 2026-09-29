@@ -1,4 +1,5 @@
 import { APIError } from 'expresscheckout-nodejs';
+import { randomBytes } from 'crypto';
 
 import { juspay, juspayConfig } from '../../config/juspay';
 
@@ -9,6 +10,7 @@ import type {
   VerifyPaymentResult,
   RefundPaymentInput,
   RefundPaymentResult,
+  WebhookResult,
 } from './PaymentProvider';
 
 export class JuspayPaymentProvider implements PaymentProvider {
@@ -18,9 +20,10 @@ export class JuspayPaymentProvider implements PaymentProvider {
     try {
       const returnUrl =
         `${process.env.PUBLIC_API_URL}/api/v1/payments/juspay/return`;
+      const juspayOrderId = randomBytes(10).toString('hex');
 
       const response = await juspay.orderSession.create({
-        order_id: input.orderId,
+        order_id: juspayOrderId,
         amount: input.amount,
         payment_page_client_id:
           juspayConfig.paymentPageClientId,
@@ -31,7 +34,7 @@ export class JuspayPaymentProvider implements PaymentProvider {
       });
 
       return {
-        providerReferenceId: input.orderId,
+        providerReferenceId: juspayOrderId,
         redirectUrl: response.payment_links?.web,
         status: 'INITIATED',
       };
@@ -67,7 +70,7 @@ export class JuspayPaymentProvider implements PaymentProvider {
 
         default:
           return {
-            status: 'FAILED',
+            status: 'PENDING',
             providerReferenceId,
           };
       }
@@ -91,9 +94,16 @@ export class JuspayPaymentProvider implements PaymentProvider {
   async handleWebhook(
     rawBody: unknown,
     signature?: string,
-  ) {
-    // Implement once the webhook payload/signature configuration
-    // for your Juspay merchant is confirmed.
-    throw new Error('Juspay webhook not implemented');
+  ): Promise<WebhookResult> {
+    const body = rawBody as { order_id?: string; orderId?: string };
+    const providerReferenceId = body.order_id ?? body.orderId;
+    if (!providerReferenceId) throw new Error('Missing Juspay order_id in callback');
+
+    const result = await this.verifyPayment(providerReferenceId);
+    if (result.status === 'PENDING') throw new Error('Juspay payment is not in a terminal state');
+    return {
+      providerReferenceId,
+      status: result.status,
+    };
   }
 }

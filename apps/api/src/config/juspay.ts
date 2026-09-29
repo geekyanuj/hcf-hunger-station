@@ -17,8 +17,8 @@ if (!privateKeyPath) {
   throw new Error('JUSPAY_PRIVATE_KEY_PATH is not configured');
 }
 
-const publicKey = fs.readFileSync(publicKeyPath);
-const privateKey = fs.readFileSync(privateKeyPath);
+const publicKey = fs.readFileSync(publicKeyPath, 'utf8');
+const privateKey = fs.readFileSync(privateKeyPath, 'utf8');
 
 export const juspay = new Juspay({
   merchantId: process.env.JUSPAY_MERCHANT_ID!,

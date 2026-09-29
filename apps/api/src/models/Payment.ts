@@ -10,6 +10,7 @@ export interface IPayment extends Document {
   method: PaymentMethod;
   provider: string; // "MOCK" in Part 1
   providerReferenceId?: string;
+  providerPaymentId?: string;
   status: PaymentTransactionStatus;
   failureReason?: string;
   refundedAmount: number;
@@ -26,6 +27,7 @@ const PaymentSchema = new Schema<IPayment>(
     method: { type: String, enum: ['CASH', 'UPI', 'CARD', 'ONLINE'], required: true },
     provider: { type: String, required: true, default: 'MOCK' },
     providerReferenceId: { type: String },
+    providerPaymentId: { type: String },
     status: { type: String, enum: ['INITIATED', 'SUCCESS', 'FAILED', 'REFUNDED'], default: 'INITIATED' },
     failureReason: { type: String },
     refundedAmount: { type: Number, default: 0 },
