@@ -32,9 +32,7 @@ async function seedRoles() {
 
 async function seedOutlets() {
   const outletDefs = [
-    { name: 'HFC Bank More', code: 'BKM', address: 'Bank More Main Road, Dhanbad, Jharkhand', phone: '+919000000001', email: 'bankmore@hfc.example' },
-    { name: 'HFC Saraidhela', code: 'SRD', address: 'Saraidhela Chowk, Dhanbad, Jharkhand', phone: '+919000000002', email: 'saraidhela@hfc.example' },
-    { name: 'HFC Hirapur', code: 'HRP', address: 'Hirapur Road, Dhanbad, Jharkhand', phone: '+919000000003', email: 'hirapur@hfc.example' },
+    { name: 'HCF Hunger Station', code: 'AZN', address: 'Azad Nagar, Near 4 Imambara, Bhuli Locality, Dhanbad, Jharkhand', phone: '+919296871171', email: 'azadnagar@hcfhungerstation.space' },
   ];
 
   const outlets = [];
@@ -46,8 +44,8 @@ async function seedOutlets() {
         isActive: true,
         openingHours: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => ({
           day,
-          openTime: '10:00',
-          closeTime: '23:00',
+          openTime: '11:30',
+          closeTime: '23:30',
           isClosed: false,
         })),
         settings: {
@@ -72,15 +70,15 @@ async function seedOutlets() {
 async function seedStaffUsers(outlets: Awaited<ReturnType<typeof seedOutlets>>) {
   const outletIds = outlets.map((o) => o._id);
   const staffDefs = [
-    { name: 'Owner Account', email: 'owner@hfc.example', role: 'OWNER', outletIds },
-    { name: 'Bank More Manager', email: 'manager.bankmore@hfc.example', role: 'MANAGER', outletIds: [outlets[0]._id] },
-    { name: 'Bank More Cashier', email: 'cashier.bankmore@hfc.example', role: 'CASHIER', outletIds: [outlets[0]._id] },
-    { name: 'Bank More Kitchen', email: 'kitchen.bankmore@hfc.example', role: 'KITCHEN', outletIds: [outlets[0]._id] },
-    { name: 'Bank More Inventory', email: 'inventory.bankmore@hfc.example', role: 'INVENTORY', outletIds: [outlets[0]._id] },
-    { name: 'Bank More Delivery Rider', email: 'delivery.bankmore@hfc.example', role: 'DELIVERY', outletIds: [outlets[0]._id] },
+    { name: 'Owner Account', email: 'owner@hcfhungerstation.space', role: 'OWNER', outletIds },
+    { name: 'Manager', email: 'manager@hcfhungerstation.space', role: 'MANAGER', outletIds: [outlets[0]._id] },
+    { name: 'Cashier', email: 'cashier@hcfhungerstation.space', role: 'CASHIER', outletIds: [outlets[0]._id] },
+    { name: 'Kitchen', email: 'kitchen@hcfhungerstation.space', role: 'KITCHEN', outletIds: [outlets[0]._id] },
+    { name: 'Inventory', email: 'inventory@hcfhungerstation.space', role: 'INVENTORY', outletIds: [outlets[0]._id] },
+    { name: 'Delivery Rider', email: 'delivery@hcfhungerstation.space', role: 'DELIVERY', outletIds: [outlets[0]._id] },
   ];
 
-  const passwordHash = await hashPassword('Passw0rd!123');
+  const passwordHash = await hashPassword('123456');
   for (const def of staffDefs) {
     await User.findOneAndUpdate(
       { email: def.email },
@@ -88,7 +86,7 @@ async function seedStaffUsers(outlets: Awaited<ReturnType<typeof seedOutlets>>) 
       { upsert: true, new: true }
     );
   }
-  console.log(`Seeded ${staffDefs.length} staff users (password: Passw0rd!123)`);
+  console.log(`Seeded ${staffDefs.length} staff users (password: 123456)`);
 }
 
 async function seedCustomers() {
@@ -189,7 +187,7 @@ async function seedMenuForOutlet(outletId: mongoose.Types.ObjectId) {
         categoryId: categories[def.category],
         name: def.name,
         slug: slugify(def.name),
-        description: `${def.name} freshly prepared at HFC.`,
+        description: `${def.name} freshly prepared at HCF.`,
         images: [],
         price: def.price,
         taxCategory: 'GST_5',
