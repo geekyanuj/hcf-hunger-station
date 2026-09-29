@@ -98,3 +98,4 @@ volumes:
 # - The `mongo` service is the MongoDB database, which stores application data. It exposes its database on port 27017.
 # - The `redis` service is the Redis cache, which is used for caching and rate limiting. It exposes its cache on port 6379.
 # - The `volumes` section defines persistent storage for MongoDB, Redis, and API uploads, ensuring that data is not lost when containers are stopped or removed.
+# heelo
