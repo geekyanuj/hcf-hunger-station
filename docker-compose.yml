@@ -90,3 +90,11 @@ volumes:
   mongo_data:
   redis_data:
   api_uploads:
+
+
+# Notes:
+# - The `api` service is the backend API server, which connects to MongoDB and Redis. It exposes its API on port 4001.
+# - The `web` service is the frontend web application, which connects to the API server. It exposes its web interface on port 5174.
+# - The `mongo` service is the MongoDB database, which stores application data. It exposes its database on port 27017.
+# - The `redis` service is the Redis cache, which is used for caching and rate limiting. It exposes its cache on port 6379.
+# - The `volumes` section defines persistent storage for MongoDB, Redis, and API uploads, ensuring that data is not lost when containers are stopped or removed.
