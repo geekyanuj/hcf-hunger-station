@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { Outlet, IOutlet } from '../models/Outlet';
-import { User } from '../models/User';
+import { IUser, User } from '../models/User';
 import { Role } from '../models/Role';
 import {
   DEFAULT_ROLE_PERMISSIONS,
@@ -13,18 +13,6 @@ import {
  * ============================================================
  *
  * Add/remove outlets here as required.
- *
- * Example:
- *
- * {
- *   name: 'HCF Bank More',
- *   code: 'BKM',
- *   address: 'Bank More, Dhanbad, Jharkhand',
- *   phone: '+919876543211',
- *   email: 'bankmore@hcfhungerstation.space',
- *   openTime: '11:00',
- *   closeTime: '23:30',
- * },
  *
  * After adding an outlet, run:
  *
@@ -44,7 +32,16 @@ export const HCF_OUTLETS = [
     closeTime: '23:30',
   },
 
-  // Add future outlets here.
+  // Uncomment to seed another outlet:
+  // {
+  //   name: 'HCF Bank More',
+  //   code: 'BKM',
+  //   address: 'Bank More, Dhanbad, Jharkhand',
+  //   phone: '+919876543211',
+  //   email: 'bankmore@hcfhungerstation.space',
+  //   openTime: '11:00',
+  //   closeTime: '23:30',
+  // },
 ] as const;
 
 const DAYS = [
@@ -130,7 +127,7 @@ export async function ensureHcfOutlets(): Promise<IOutlet[]> {
  */
 export async function assignUsersToOutlet(
   outletId: IOutlet['_id'],
-  userIds: User['_id'][]
+  userIds: IUser['_id'][]
 ): Promise<number> {
   const result = await User.updateMany(
     {
