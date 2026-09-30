@@ -2,18 +2,35 @@
 import { Outlet, IOutlet } from '../models/Outlet';
 import { User } from '../models/User';
 import { Role } from '../models/Role';
-import { DEFAULT_ROLE_PERMISSIONS, ROLES } from '../config/permissions';
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  ROLES,
+} from '../config/permissions';
 
 /**
+ * ============================================================
  * HCF OUTLETS
+ * ============================================================
  *
- * Keep only the currently active outlet uncommented.
+ * Add/remove outlets here as required.
  *
- * To add another outlet in the future:
- * 1. Uncomment/add the outlet object.
- * 2. Run the seed.
+ * Example:
  *
- * The seed will create the outlet if it does not already exist.
+ * {
+ *   name: 'HCF Bank More',
+ *   code: 'BKM',
+ *   address: 'Bank More, Dhanbad, Jharkhand',
+ *   phone: '+919876543211',
+ *   email: 'bankmore@hcfhungerstation.space',
+ *   openTime: '11:00',
+ *   closeTime: '23:30',
+ * },
+ *
+ * After adding an outlet, run:
+ *
+ * npm run seed --workspace=apps/api
+ *
+ * Existing outlets are NOT modified.
  */
 
 export const HCF_OUTLETS = [
@@ -27,31 +44,7 @@ export const HCF_OUTLETS = [
     closeTime: '23:30',
   },
 
-  /*
-  // FUTURE OUTLET EXAMPLE
-  {
-    name: 'HCF Bank More',
-    code: 'BKM',
-    address: 'Bank More, Dhanbad, Jharkhand',
-    phone: '+919876543211',
-    email: 'bankmore@hcfhungerstation.space',
-    openTime: '11:00',
-    closeTime: '23:30',
-  },
-  */
-
-  /*
-  // FUTURE OUTLET EXAMPLE
-  {
-    name: 'HCF Saraidhela',
-    code: 'SRD',
-    address: 'Saraidhela, Dhanbad, Jharkhand',
-    phone: '+919876543212',
-    email: 'saraidhela@hcfhungerstation.space',
-    openTime: '11:00',
-    closeTime: '23:30',
-  },
-  */
+  // Add future outlets here.
 ] as const;
 
 const DAYS = [
@@ -75,10 +68,9 @@ const DEFAULT_SETTINGS = {
   currency: 'INR',
 };
 
-/**
- * Creates the common outlet fields.
- */
-function getOutletData(outlet: (typeof HCF_OUTLETS)[number]) {
+function getOutletData(
+  outlet: (typeof HCF_OUTLETS)[number]
+) {
   return {
     name: outlet.name,
     code: outlet.code,
@@ -99,30 +91,29 @@ function getOutletData(outlet: (typeof HCF_OUTLETS)[number]) {
 }
 
 /**
- * Creates all configured outlets.
+ * Create all configured outlets.
  *
  * Idempotent:
- * - Existing outlets are left alone.
- * - Missing outlets are created.
- *
- * This means you can add a future outlet to HCF_OUTLETS
- * and simply run the seed again.
+ * - Existing outlet with same code = untouched.
+ * - Missing outlet = created.
  */
 export async function ensureHcfOutlets(): Promise<IOutlet[]> {
   const outlets: IOutlet[] = [];
 
-  for (const outletConfig of HCF_OUTLETS) {
+  for (const config of HCF_OUTLETS) {
     let outlet = await Outlet.findOne({
-      code: outletConfig.code,
+      code: config.code,
     });
 
     if (!outlet) {
       outlet = await Outlet.create({
-        ...getOutletData(outletConfig),
+        ...getOutletData(config),
         settings: DEFAULT_SETTINGS,
       });
 
-      console.log(`Created outlet: ${outletConfig.name}`);
+      console.log(`Created outlet: ${config.name}`);
+    } else {
+      console.log(`Outlet already exists: ${config.name}`);
     }
 
     outlets.push(outlet);
@@ -132,23 +123,23 @@ export async function ensureHcfOutlets(): Promise<IOutlet[]> {
 }
 
 /**
- * Assigns users to the configured outlet(s).
+ * Assign users to an outlet.
  *
- * Currently there is only one outlet, so all users are assigned
- * to HCF Azadnagar.
- *
- * When you add more outlets in the future, you should decide
- * which users belong to which outlet instead of assigning
- * everyone automatically.
+ * This should only be used when you explicitly want
+ * to assign users to a particular outlet.
  */
-export async function realignStaffToOutlet(
-  outlet: IOutlet
+export async function assignUsersToOutlet(
+  outletId: IOutlet['_id'],
+  userIds: User['_id'][]
 ): Promise<number> {
   const result = await User.updateMany(
-    { isDeleted: false },
+    {
+      _id: { $in: userIds },
+      isDeleted: false,
+    },
     {
       $set: {
-        outletIds: [outlet._id],
+        outletIds: [outletId],
       },
     }
   );
@@ -157,7 +148,7 @@ export async function realignStaffToOutlet(
 }
 
 /**
- * New permissions.
+ * New permissions that need to be added to existing roles.
  */
 export const NEW_PERMISSIONS = [
   'tokens.print',
@@ -165,22 +156,22 @@ export const NEW_PERMISSIONS = [
 ] as const;
 
 /**
- * Adds new permissions to existing roles.
+ * Add new permissions without removing existing permissions.
  */
 export async function grantNewPermissions(): Promise<number> {
   let updated = 0;
 
-  for (const name of ROLES) {
+  for (const roleName of ROLES) {
     const permissions = NEW_PERMISSIONS.filter((permission) =>
-      (DEFAULT_ROLE_PERMISSIONS[name] as readonly string[]).includes(
-        permission
-      )
+      (
+        DEFAULT_ROLE_PERMISSIONS[roleName] as readonly string[]
+      ).includes(permission)
     );
 
     if (permissions.length === 0) continue;
 
     const result = await Role.updateOne(
-      { name },
+      { name: roleName },
       {
         $addToSet: {
           permissions: {
@@ -197,19 +188,22 @@ export async function grantNewPermissions(): Promise<number> {
 }
 
 /**
- * Runs the complete outlet setup.
+ * Complete outlet setup.
+ *
+ * Does NOT:
+ * - delete outlets
+ * - modify existing outlet data
+ * - automatically move staff
+ *
+ * It only creates missing configured outlets.
  */
-export async function applySingleOutletSetup() {
+export async function applyOutletSetup() {
   const outlets = await ensureHcfOutlets();
-
-  // Currently only one outlet exists.
-  const staffUpdated = await realignStaffToOutlet(outlets[0]);
 
   const permissionsUpdated = await grantNewPermissions();
 
   return {
     outlets,
-    staffUpdated,
     permissionsUpdated,
   };
 }
