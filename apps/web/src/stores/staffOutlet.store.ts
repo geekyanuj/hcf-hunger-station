@@ -12,6 +12,6 @@ export const useStaffOutletStore = create<StaffOutletState>()(
       activeOutletId: null,
       setActiveOutlet: (activeOutletId) => set({ activeOutletId }),
     }),
-    { name: 'hfc-staff-outlet' }
+    { name: 'hcf-staff-outlet' }
   )
 );

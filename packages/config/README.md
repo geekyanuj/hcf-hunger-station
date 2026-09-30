@@ -1,4 +1,4 @@
-# @hfc/config
+# @hcf/config
 
 Reserved for shared lint/tsconfig presets across apps/api and apps/web
 (e.g. a common `tsconfig.base.json`, shared ESLint config). Each app currently

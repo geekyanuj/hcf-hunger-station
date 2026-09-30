@@ -24,6 +24,7 @@ import analyticsRoutes from './analytics.routes';
 import dashboardRoutes from './dashboard.routes';
 import searchRoutes from './search.routes';
 import exportRoutes from './export.routes';
+import printRoutes from './print.routes';
 
 const router = Router();
 
@@ -52,5 +53,6 @@ router.use('/analytics', analyticsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/search', searchRoutes);
 router.use('/exports', exportRoutes);
+router.use('/print', printRoutes);
 
 export default router;

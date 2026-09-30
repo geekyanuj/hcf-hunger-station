@@ -300,6 +300,7 @@ export type OrderActionKey =
   | 'CANCEL'
   | 'PRINT_CUSTOMER'
   | 'PRINT_KITCHEN'
+  | 'PRINT_TOKEN'
   | 'VIEW';
 
 export interface OrderAction {
@@ -381,6 +382,10 @@ export function getAvailableActions(order: OrderFacts, actor: OrderActor): Order
     actions.push({ key: 'PRINT_CUSTOMER', label: 'Print Customer', kind: 'PRINT', enabled: true });
     if (status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING' || status === 'READY') {
       actions.push({ key: 'PRINT_KITCHEN', label: 'Print Kitchen', kind: 'PRINT', enabled: true });
+    }
+    // Thermal token slip: only roles holding `tokens.print` (OWNER, MANAGER, CASHIER) see this button.
+    if (hasPermission(actor, 'tokens.print')) {
+      actions.push({ key: 'PRINT_TOKEN', label: 'Print Token', kind: 'PRINT', enabled: true });
     }
     if (isTerminalStatus(status)) {
       actions.unshift({ key: 'VIEW', label: 'View', kind: 'VIEW', enabled: true });

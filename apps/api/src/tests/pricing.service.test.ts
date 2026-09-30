@@ -11,7 +11,7 @@ async function setupOutletWithMenu() {
     code: 'TST',
     address: 'Test Address',
     phone: '+919999999999',
-    email: 'test@hfc.example',
+    email: 'test@hcf.example',
     settings: { taxPercentage: 5, packagingCharge: 10, deliveryBaseCharge: 30, deliveryPerKmCharge: 8, kitchenCapacityPerSlot: 6, rushMultiplier: 1.4, tokenResetPolicy: 'DAILY', currency: 'INR' },
   });
 
@@ -61,13 +61,13 @@ describe('PricingService.priceCart', () => {
     expect(priced.deliveryCharge).toBe(0);
   });
 
-  it('applies the HFC10 demo coupon as a 10% discount', async () => {
+  it('applies the HCF10 demo coupon as a 10% discount', async () => {
     const { outlet, item } = await setupOutletWithMenu();
     const priced = await PricingService.priceCart(
       outlet.id,
       [{ menuItemId: item.id, quantity: 1, selectedOptionIds: [] }],
       'DELIVERY',
-      'HFC10'
+      'HCF10'
     );
     expect(priced.discount).toBe(10); // 10% of 100
   });

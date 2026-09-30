@@ -22,3 +22,5 @@ export * from './Coupon';
 export * from './Loyalty';
 export * from './PartyOrder';
 export * from './Notification';
+export * from './PrintJob';
+export * from './DashboardReset';

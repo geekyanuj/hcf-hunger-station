@@ -22,7 +22,7 @@ async function seedFullFlowFixtures() {
     code: 'FLW',
     address: 'Addr',
     phone: '+919999999996',
-    email: 'flow@hfc.example',
+    email: 'flow@hcf.example',
   });
   const category = await MenuCategory.create({ outletId: outlet._id, name: 'Burgers', slug: 'burgers' });
   const menuItem = await MenuItem.create({

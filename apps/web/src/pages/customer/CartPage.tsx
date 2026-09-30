@@ -7,11 +7,22 @@ import { Card, CardContent, Skeleton, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { formatCurrency } from '@/utils/cn';
 import { useState } from 'react';
+import { deliverySetupPath, useDeliveryReadiness } from '@/hooks/useDeliveryReadiness';
 
 export default function CartPage() {
   const navigate = useNavigate();
   const { outletId, orderType, lines, updateQuantity, removeLine, couponCode, applyCoupon } = useCartStore();
   const [couponInput, setCouponInput] = useState(couponCode ?? '');
+  const delivery = useDeliveryReadiness();
+
+  function proceed() {
+    // Delivery orders need a saved name + address first; send the customer there, then bring them back to checkout.
+    if (orderType === 'DELIVERY' && (delivery.status === 'LOGIN_REQUIRED' || delivery.status === 'DETAILS_REQUIRED')) {
+      navigate(deliverySetupPath(delivery.status, '/checkout'));
+      return;
+    }
+    navigate('/checkout');
+  }
 
   const { data: priced, isLoading, isError } = useQuery({
     queryKey: ['price-cart', outletId, orderType, lines, couponCode],
@@ -93,8 +104,18 @@ export default function CartPage() {
               </div>
             )}
 
-            <Button className="w-full" disabled={!priced} onClick={() => navigate('/checkout')}>
-              Proceed to Checkout
+            {orderType === 'DELIVERY' && delivery.status !== 'READY' && delivery.status !== 'LOADING' && (
+              <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {delivery.status === 'LOGIN_REQUIRED' ? 'Sign in and add your delivery address to continue.' : 'Add your name and delivery address to continue.'}
+              </p>
+            )}
+
+            <Button className="w-full" disabled={!priced || (orderType === 'DELIVERY' && delivery.status === 'LOADING')} onClick={proceed}>
+              {orderType === 'DELIVERY' && delivery.status === 'LOGIN_REQUIRED'
+                ? 'Sign in to continue'
+                : orderType === 'DELIVERY' && delivery.status === 'DETAILS_REQUIRED'
+                  ? 'Add delivery address'
+                  : 'Proceed to Checkout'}
             </Button>
           </CardContent>
         </Card>

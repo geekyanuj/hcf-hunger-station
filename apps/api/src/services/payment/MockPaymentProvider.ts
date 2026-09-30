@@ -7,7 +7,6 @@ import {
   RefundPaymentInput,
   RefundPaymentResult,
 } from './PaymentProvider';
-import { verifyWebhookSignature } from '../../utils/webhookSignature';
 
 /**
  * Deterministic, dependency-free provider used for local development and
@@ -40,8 +39,7 @@ export class MockPaymentProvider implements PaymentProvider {
     return { status: 'REFUNDED', refundReferenceId: `mock_refund_${uuid()}`, };
   }
 
-  async handleWebhook(rawBody: unknown, signature?: string): Promise<{ providerReferenceId: string; status: 'SUCCESS' | 'FAILED' }> {
-    if (!verifyWebhookSignature(rawBody, signature)) throw new Error('Invalid mock payment webhook signature');
+  async handleWebhook(rawBody: unknown): Promise<{ providerReferenceId: string; status: 'SUCCESS' | 'FAILED' }> {
     const body = rawBody as { providerReferenceId?: string; status?: string };
     if (!body.providerReferenceId) throw new Error('Missing providerReferenceId in webhook payload');
     const status = body.status === 'FAILED' ? 'FAILED' : 'SUCCESS';

@@ -111,6 +111,59 @@ export const MenuAdminApi = {
 
 export const DashboardApi = {
   overview: async (outletId: string) => (await api.get('/dashboard/overview', { params: { outletId } })).data.data,
+  /** Owner-only. Re-enters the owner's password; the dashboard then counts from this moment (no data is deleted). */
+  reset: async (outletId: string, password: string): Promise<{ resetAt: string; resetBy: string; outletCount: number }> =>
+    (await api.post('/dashboard/reset', { password }, { params: { outletId } })).data.data,
+};
+
+// ---------- Thermal token printing ----------
+export interface PrintStatus {
+  driver: 'DISABLED' | 'NETWORK' | 'FILE' | 'CONSOLE';
+  configured: boolean;
+  /** PRINTER = the API prints straight to the thermal printer; BROWSER = no printer connected, use the print dialog. */
+  mode: 'PRINTER' | 'BROWSER';
+  target: string;
+  paperWidthMm: 58 | 80;
+  charactersPerLine: number;
+  autoCut: boolean;
+  openDrawer: boolean;
+  defaultCopies: number;
+  hint?: string;
+}
+
+export interface PrintResult {
+  printed: boolean;
+  mode: 'PRINTER' | 'BROWSER';
+  driver: string;
+  copies: number;
+  isReprint: boolean;
+  jobId: string;
+  text: string;
+  paperWidthMm: 58 | 80;
+  warning?: string;
+}
+
+export interface PrintJob {
+  _id: string;
+  tokenNumber?: string;
+  type: 'TOKEN' | 'TEST';
+  status: 'PRINTED' | 'BROWSER' | 'FAILED';
+  driver: string;
+  copies: number;
+  isReprint: boolean;
+  error?: string;
+  createdAt: string;
+  requestedBy?: { name: string; role: string };
+}
+
+export const PrintApi = {
+  status: async (): Promise<PrintStatus> => (await api.get('/print/status')).data.data,
+  printToken: async (orderId: string, copies?: number): Promise<PrintResult> =>
+    (await api.post(`/print/orders/${orderId}/token`, copies ? { copies } : {})).data.data,
+  previewToken: async (orderId: string): Promise<{ text: string; paperWidthMm: 58 | 80 }> =>
+    (await api.get(`/print/orders/${orderId}/token/preview`)).data.data,
+  test: async (outletId: string): Promise<PrintResult> => (await api.post('/print/test', { outletId })).data.data,
+  jobs: async (outletId: string, limit = 20): Promise<PrintJob[]> => (await api.get('/print/jobs', { params: { outletId, limit } })).data.data,
 };
 
 export const AnalyticsApi = {

@@ -8,6 +8,6 @@ export const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     env.isProduction ? winston.format.json() : winston.format.combine(winston.format.colorize(), winston.format.simple())
   ),
-  defaultMeta: { service: 'hfc-api' },
+  defaultMeta: { service: 'hcf-api' },
   transports: [new winston.transports.Console()],
 });

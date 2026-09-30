@@ -49,6 +49,6 @@ export const useCartStore = create<CartState>()(
 
       itemCount: () => get().lines.reduce((sum, l) => sum + l.quantity, 0),
     }),
-    { name: 'hfc-cart' }
+    { name: 'hcf-cart' }
   )
 );

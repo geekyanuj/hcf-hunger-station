@@ -18,7 +18,7 @@ async function setupBurgerWithRecipe() {
     code: 'TST2',
     address: 'Addr',
     phone: '+919999999997',
-    email: 'test2@hfc.example',
+    email: 'test2@hcf.example',
   });
   const category = await MenuCategory.create({ outletId: outlet._id, name: 'Burgers', slug: 'burgers' });
   const menuItem = await MenuItem.create({

@@ -3,6 +3,7 @@ import { Order } from '../models/Order';
 import { AnalyticsService } from './analytics.service';
 import { KitchenService } from './kitchen.service';
 import { InventoryDashboardService } from './inventoryDashboard.service';
+import { DashboardResetService } from './dashboardReset.service';
 
 function todayRange() {
   const from = new Date();
@@ -26,7 +27,16 @@ export const DashboardService = {
    * dashboard.controller.ts, not here.
    */
   async overview(outletIds: string[] | 'ALL') {
-    const { from, to } = todayRange();
+    const today = todayRange();
+    const to = today.to;
+
+    // "Reset dashboard": once the owner has reset it, the dashboard only counts orders created after that moment.
+    // Nothing is deleted - orders/analytics/exports are unaffected (see models/DashboardReset.ts).
+    const lastReset = await DashboardResetService.latest(outletIds);
+    const notBefore = (d: Date) => (lastReset && lastReset.at > d ? lastReset.at : d);
+    const from = notBefore(today.from);
+    const trendFrom = notBefore(new Date(Date.now() - 6 * 86400000));
+
     const match = { ...outletMatch(outletIds), isDeleted: false, orderStatus: { $ne: 'CANCELLED' as const }, createdAt: { $gte: from, $lte: to } };
 
     const [todayAgg, typeBreakdown, topProducts, categoryPerformance, revenueTrend] = await Promise.all([
@@ -37,7 +47,7 @@ export const DashboardService = {
       AnalyticsService.orderTypeDistribution(outletIds, { from, to }),
       AnalyticsService.topProducts(outletIds, { from, to }, 1),
       AnalyticsService.categoryPerformance(outletIds, { from, to }),
-      AnalyticsService.revenueOverTime(outletIds, { from: new Date(Date.now() - 6 * 86400000), to }),
+      AnalyticsService.revenueOverTime(outletIds, { from: trendFrom, to }),
     ]);
 
     const sales = todayAgg[0]?.sales ?? 0;
@@ -57,6 +67,8 @@ export const DashboardService = {
     }
 
     return {
+      /** Present only if the dashboard has been reset; the figures below then count from this moment. */
+      lastReset: lastReset ? { at: lastReset.at.toISOString(), by: lastReset.by } : null,
       todaysOverview: {
         sales,
         orders,

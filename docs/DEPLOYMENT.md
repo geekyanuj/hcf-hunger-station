@@ -42,16 +42,10 @@ Visit http://localhost (routed through nginx) or the individual ports
    - JWT_ACCESS_SECRET, JWT_REFRESH_SECRET - generate with
      `openssl rand -hex 32` each.
    - MONGO_ROOT_PASSWORD - a strong, unique password.
-   - PAYMENT_PROVIDER - set to MOCK, RAZORPAY, or JUSPAY, then recreate the
-     API container. Razorpay requires its three RAZORPAY_* credentials.
-   - For Juspay, provide JUSPAY merchant credentials and mount the public
-     and private key files under the directory configured by
-     JUSPAY_SECRETS_DIR (default: ./secrets/juspay).
-   - PUBLIC_API_URL - the externally reachable API URL used by payment
-     callbacks.
-   - Configure the Razorpay webhook URL as
-     `PUBLIC_API_URL/api/v1/payments/webhook/razorpay`. Configure Juspay's
-     webhook URL as `PUBLIC_API_URL/api/v1/payments/webhook/juspay`.
+   - PAYMENT_WEBHOOK_SECRET - matches whatever your real payment gateway
+     signs with, once one is integrated (Part 3 ships a verified-signature
+     webhook endpoint against the mock provider; wiring a real gateway
+     means implementing PaymentProvider once - see services/payment/).
    - CORS_ORIGIN - your actual frontend origin(s), not a wildcard.
    - VITE_API_BASE_URL / VITE_SOCKET_URL - your public HTTPS domain.
 

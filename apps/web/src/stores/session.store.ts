@@ -44,6 +44,6 @@ export const useSessionStore = create<SessionState>()(
 
       hasPermission: (permission: string) => get().permissions.includes(permission),
     }),
-    { name: 'hfc-session' }
+    { name: 'hcf-session' }
   )
 );

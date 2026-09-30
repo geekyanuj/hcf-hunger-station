@@ -5,7 +5,7 @@ services:
     image: mongo:7
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-hfc_admin}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-hcf_admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-change_me_strong_password}
     volumes:
       - mongo_data:/data/db

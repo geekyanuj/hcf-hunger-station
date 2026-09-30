@@ -8,6 +8,8 @@ import CheckoutPage from '@/pages/customer/CheckoutPage';
 import OrderTrackingPage from '@/pages/customer/OrderTrackingPage';
 import DineInLandingPage from '@/pages/customer/DineInLandingPage';
 import AccountPage from '@/pages/customer/AccountPage';
+import PrinterPage from '@/pages/staff/admin/PrinterPage';
+import DeliveryDetailsPage from '@/pages/customer/DeliveryDetailsPage';
 import OrdersPage from '@/pages/customer/OrdersPage';
 import PartyRequestPage from '@/pages/customer/PartyRequestPage';
 import StaffLoginPage from '@/pages/staff/StaffLoginPage';
@@ -45,6 +47,7 @@ export const router = createBrowserRouter([
       { path: 'checkout', element: <CheckoutPage /> },
       { path: 'track/:orderId', element: <OrderTrackingPage /> },
       { path: 'account', element: <AccountPage /> },
+      { path: 'delivery-details', element: <DeliveryDetailsPage /> },
       { path: 'orders', element: <OrdersPage /> },
       { path: 'party', element: <PartyRequestPage /> },
     ],
@@ -92,6 +95,7 @@ export const router = createBrowserRouter([
           { path: 'staff', element: <StaffManagementPage /> },
           { path: 'outlet-settings', element: <OutletSettingsPage /> },
           { path: 'tables', element: <TableManagementPage /> },
+          { path: 'printer', element: <PrinterPage /> },
         ],
       },
     ],

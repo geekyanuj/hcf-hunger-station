@@ -40,7 +40,7 @@ export function StaffLayout() {
     <div className="flex h-screen flex-col bg-neutral-100">
       <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-ink-900 px-4 text-white">
         <div className="flex items-center gap-6">
-          <span className="font-display text-lg font-bold">HFC Staff</span>
+          <span className="font-display text-lg font-bold">HCF Staff</span>
           <nav className="flex items-center gap-1">
             {NAV_ITEMS.filter((item) => hasPermission(item.permission)).map((item) => (
               <NavLink

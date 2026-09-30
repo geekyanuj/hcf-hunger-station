@@ -1,4 +1,4 @@
-# Database Documentation — HFC Restaurant OS (Part 1)
+# Database Documentation — HCF Restaurant OS (Part 1)
 
 MongoDB via Mongoose. All timestamps use `{ timestamps: true }`
 (`createdAt`/`updatedAt`). Soft-deletable collections use an `isDeleted`

@@ -1,5 +1,5 @@
 {
-  "name": "hfc-restaurant-system",
+  "name": "hcf-restaurant-system",
   "private": true,
   "version": "1.0.0",
   "workspaces": [
@@ -15,7 +15,8 @@
     "seed": "npm run seed --workspace=apps/api",
     "test:api": "npm run test --workspace=apps/api",
     "test:api:unit": "npm run test:unit --workspace=apps/api",
-    "migrate:order-status": "npm run migrate:order-status --workspace=apps/api"
+    "migrate:order-status": "npm run migrate:order-status --workspace=apps/api",
+    "migrate:single-outlet": "npm run migrate:single-outlet --workspace=apps/api"
   },
   "engines": {
     "node": ">=18.0.0"

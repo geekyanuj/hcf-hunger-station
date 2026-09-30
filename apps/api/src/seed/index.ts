@@ -18,6 +18,7 @@ import { LoyaltyConfig } from '../models/Loyalty';
 import { DEFAULT_ROLE_PERMISSIONS, ROLES } from '../config/permissions';
 import { hashPassword } from '../utils/password';
 import { slugify } from '../utils/format';
+import { applySingleOutletSetup, HCF_OUTLET } from './hcfOutlet';
 
 async function seedRoles() {
   for (const roleName of ROLES) {
@@ -31,54 +32,28 @@ async function seedRoles() {
 }
 
 async function seedOutlets() {
-  const outletDefs = [
-    { name: 'HCF Hunger Station', code: 'AZN', address: 'Azad Nagar, Near 4 Imambara, Bhuli Locality, Dhanbad, Jharkhand', phone: '+919296871171', email: 'azadnagar@hcfhungerstation.space' },
-  ];
-
-  const outlets = [];
-  for (const def of outletDefs) {
-    const outlet = await Outlet.findOneAndUpdate(
-      { code: def.code },
-      {
-        ...def,
-        isActive: true,
-        openingHours: ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => ({
-          day,
-          openTime: '11:30',
-          closeTime: '23:30',
-          isClosed: false,
-        })),
-        settings: {
-          taxPercentage: 5,
-          packagingCharge: 15,
-          deliveryBaseCharge: 35,
-          deliveryPerKmCharge: 8,
-          kitchenCapacityPerSlot: 6,
-          rushMultiplier: 1.4,
-          tokenResetPolicy: 'DAILY',
-          currency: 'INR',
-        },
-      },
-      { upsert: true, new: true }
-    );
-    outlets.push(outlet);
-  }
-  console.log(`Seeded ${outlets.length} outlets`);
-  return outlets;
+  // HCF runs from a single outlet (HCF Azadnagar). This also converts/retires outlets left over from the old
+  // three-outlet setup when the seed is re-run against an existing database - see ./hcfOutlet.ts.
+  const { outlet, retired, reassigned, renamed } = await applySingleOutletSetup();
+  console.log(`Seeded outlet "${outlet.name}" (${HCF_OUTLET.address}, ${HCF_OUTLET.openTime}-${HCF_OUTLET.closeTime})`);
+  if (retired) console.log(`Retired ${retired} legacy outlet(s)`);
+  if (renamed) console.log(`Renamed ${renamed} legacy staff login(s) @hfc.example -> @hcf.example`);
+  if (reassigned) console.log(`Re-pointed ${reassigned} staff account(s) at the single outlet`);
+  return [outlet];
 }
 
 async function seedStaffUsers(outlets: Awaited<ReturnType<typeof seedOutlets>>) {
   const outletIds = outlets.map((o) => o._id);
   const staffDefs = [
-    { name: 'Owner Account', email: 'owner@hcfhungerstation.space', role: 'OWNER', outletIds },
-    { name: 'Manager', email: 'manager@hcfhungerstation.space', role: 'MANAGER', outletIds: [outlets[0]._id] },
-    { name: 'Cashier', email: 'cashier@hcfhungerstation.space', role: 'CASHIER', outletIds: [outlets[0]._id] },
-    { name: 'Kitchen', email: 'kitchen@hcfhungerstation.space', role: 'KITCHEN', outletIds: [outlets[0]._id] },
-    { name: 'Inventory', email: 'inventory@hcfhungerstation.space', role: 'INVENTORY', outletIds: [outlets[0]._id] },
-    { name: 'Delivery Rider', email: 'delivery@hcfhungerstation.space', role: 'DELIVERY', outletIds: [outlets[0]._id] },
+    { name: 'Owner Account', email: 'owner@hcf.example', role: 'OWNER', outletIds },
+    { name: 'Azadnagar Manager', email: 'manager.azadnagar@hcf.example', role: 'MANAGER', outletIds },
+    { name: 'Azadnagar Cashier', email: 'cashier.azadnagar@hcf.example', role: 'CASHIER', outletIds },
+    { name: 'Azadnagar Kitchen', email: 'kitchen.azadnagar@hcf.example', role: 'KITCHEN', outletIds },
+    { name: 'Azadnagar Inventory', email: 'inventory.azadnagar@hcf.example', role: 'INVENTORY', outletIds },
+    { name: 'Azadnagar Delivery Rider', email: 'delivery.azadnagar@hcf.example', role: 'DELIVERY', outletIds },
   ];
 
-  const passwordHash = await hashPassword('123456');
+  const passwordHash = await hashPassword('Passw0rd!123');
   for (const def of staffDefs) {
     await User.findOneAndUpdate(
       { email: def.email },
@@ -86,7 +61,7 @@ async function seedStaffUsers(outlets: Awaited<ReturnType<typeof seedOutlets>>) 
       { upsert: true, new: true }
     );
   }
-  console.log(`Seeded ${staffDefs.length} staff users (password: 123456)`);
+  console.log(`Seeded ${staffDefs.length} staff users (password: Passw0rd!123)`);
 }
 
 async function seedCustomers() {
@@ -312,9 +287,9 @@ async function seedCouponsAndLoyalty() {
   );
 
   await Coupon.findOneAndUpdate(
-    { code: 'HFC10' },
+    { code: 'HCF10' },
     {
-      code: 'HFC10',
+      code: 'HCF10',
       description: '10% off, up to ₹100',
       discountType: 'PERCENT',
       value: 10,
@@ -352,7 +327,7 @@ async function seedCouponsAndLoyalty() {
     { upsert: true, new: true }
   );
 
-  console.log('Seeded 3 coupons (WELCOME50, HFC10, WEEKEND15) and the default loyalty configuration');
+  console.log('Seeded 3 coupons (WELCOME50, HCF10, WEEKEND15) and the default loyalty configuration');
 }
 
 async function run() {
@@ -373,7 +348,7 @@ async function run() {
   await seedCouponsAndLoyalty();
 
   console.log('\nSeed complete.');
-  console.log('Staff login: any *@hfc.example address above, password: Passw0rd!123');
+  console.log('Staff login: any *@hcf.example address above, password: Passw0rd!123');
   console.log('Customer login: enter name + mobile 9876543210 on the Account page (no OTP needed).');
 
   await mongoose.disconnect();

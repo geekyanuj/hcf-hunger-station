@@ -81,5 +81,5 @@ equivalent. A minimal pipeline worth adding:
 
 ## Admin login (seeded)
 
-See the root README.md "Test credentials" section - owner@hfc.example /
+See the root README.md "Test credentials" section - owner@hcf.example /
 Passw0rd!123 is the seeded OWNER account with access to every admin page.

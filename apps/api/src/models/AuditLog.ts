@@ -9,7 +9,8 @@ export type AuditAction =
   | 'PURCHASE_COMPLETED'
   | 'WASTAGE_RECORDED'
   | 'USER_PERMISSION_CHANGE'
-  | 'STOCK_OVERRIDE';
+  | 'STOCK_OVERRIDE'
+  | 'DASHBOARD_RESET';
 
 export interface IAuditLog extends Document {
   userId: Types.ObjectId;
@@ -38,6 +39,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
         'WASTAGE_RECORDED',
         'USER_PERMISSION_CHANGE',
         'STOCK_OVERRIDE',
+        'DASHBOARD_RESET',
       ],
       required: true,
     },

@@ -52,3 +52,9 @@ export const changePasswordSchema = z.object({
   query: z.any().optional(),
   params: z.any().optional(),
 });
+
+export const dashboardResetSchema = z.object({
+  body: z.object({ password: z.string().min(1, 'Password is required').max(200) }),
+  query: z.any().optional(),
+  params: z.any().optional(),
+});

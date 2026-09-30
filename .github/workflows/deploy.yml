@@ -1,48 +1,23 @@
-name: Deploy to VPS
+name: Test VPS SSH
 
 on:
   push:
     branches:
       - main
 
-concurrency:
-  group: production-deployment
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to VPS
+      - name: Test SSH
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          command_timeout: 30m
+          debug: true
           script: |
-            set -e
-
-            cd /opt/hfc-new
-
-            echo "Fetching latest code..."
-            git fetch origin main
-
-            echo "Synchronizing with GitHub..."
-            git reset --hard origin/main
-
-            echo "Building and starting containers..."
-            docker compose up -d --build --remove-orphans
-
-            echo "Cleaning unused Docker images..."
-            docker image prune -f
-
-            echo "Container status:"
-            docker compose ps
-
-            echo "Deployment complete!"
+            whoami
+            hostname

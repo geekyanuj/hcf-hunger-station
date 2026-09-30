@@ -5,7 +5,7 @@ services:
     image: mongo:7
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-hfc_admin}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-hcf_admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-change_me_strong_password}
     volumes:
       - mongo_data:/data/db
@@ -43,35 +43,35 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      MONGO_URI: mongodb://${MONGO_ROOT_USER:-hfc_admin}:${MONGO_ROOT_PASSWORD:-change_me_strong_password}@mongo:27017/hfc_ros?authSource=admin
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-hcf_admin}:${MONGO_ROOT_PASSWORD:-change_me_strong_password}@mongo:27017/hcf_ros?authSource=admin
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change_me_access_secret_min_32_chars}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change_me_refresh_secret_min_32_chars}
       JWT_ACCESS_EXPIRES_IN: 15m
       JWT_REFRESH_EXPIRES_IN: 7d
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
-      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-MOCK}
+      PAYMENT_PROVIDER: MOCK
       PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-change_me_webhook_secret}
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
-      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
-      JUSPAY_ENV: ${JUSPAY_ENV:-sandbox}
-      JUSPAY_MERCHANT_ID: ${JUSPAY_MERCHANT_ID:-}
-      JUSPAY_KEY_UUID: ${JUSPAY_KEY_UUID:-}
-      JUSPAY_PAYMENT_PAGE_CLIENT_ID: ${JUSPAY_PAYMENT_PAGE_CLIENT_ID:-}
-      JUSPAY_PUBLIC_KEY_PATH: /run/secrets/juspay/public.key
-      JUSPAY_PRIVATE_KEY_PATH: /run/secrets/juspay/private.key
-      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4001}
+      # Thermal token printer - set these in the root .env (see docs/PRINTING.md). DISABLED = browser print.
+      PRINTER_DRIVER: ${PRINTER_DRIVER:-DISABLED}
+      PRINTER_HOST: ${PRINTER_HOST:-}
+      PRINTER_PORT: ${PRINTER_PORT:-9100}
+      PRINTER_DEVICE_PATH: ${PRINTER_DEVICE_PATH:-}
+      PRINTER_PAPER_WIDTH: ${PRINTER_PAPER_WIDTH:-80}
+      PRINTER_TIMEOUT_MS: ${PRINTER_TIMEOUT_MS:-5000}
+      PRINTER_CUT: ${PRINTER_CUT:-true}
+      PRINTER_OPEN_DRAWER: ${PRINTER_OPEN_DRAWER:-false}
+      PRINTER_COPIES: ${PRINTER_COPIES:-1}
+      PRINTER_FOOTER: ${PRINTER_FOOTER:-Thank you! Visit again}
     depends_on:
       mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
     ports:
-      - '4001:4000'
+      - '4000:4000'
     volumes:
       - api_uploads:/app/uploads
-      - ${JUSPAY_SECRETS_DIR:-./secrets/juspay}:/run/secrets/juspay:ro
 
   web:
     build:
@@ -84,18 +84,27 @@ services:
     depends_on:
       - api
     ports:
-      - '5174:80'
+      - '5173:80'
+
+  # Single public entrypoint. See docker/nginx.conf (HTTP-only, local/dev) and
+  # docker/nginx.prod.conf (HTTPS + HTTP->HTTPS redirect, for production —
+  # see docs/DEPLOYMENT.md for SSL certificate setup).
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # Uncomment for production HTTPS (see docs/DEPLOYMENT.md):
+      # - ./docker/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      # - ./docker/certs:/etc/nginx/certs:ro
+    depends_on:
+      - api
+      - web
+    ports:
+      - '80:80'
+      - '443:443'
 
 volumes:
   mongo_data:
   redis_data:
   api_uploads:
-
-
-# Notes:
-# - The `api` service is the backend API server, which connects to MongoDB and Redis. It exposes its API on port 4001.
-# - The `web` service is the frontend web application, which connects to the API server. It exposes its web interface on port 5174.
-# - The `mongo` service is the MongoDB database, which stores application data. It exposes its database on port 27017.
-# - The `redis` service is the Redis cache, which is used for caching and rate limiting. It exposes its cache on port 6379.
-# - The `volumes` section defines persistent storage for MongoDB, Redis, and API uploads, ensuring that data is not lost when containers are stopped or removed.
-# heelo

@@ -1,6 +1,6 @@
 # Security
 
-This document covers the security posture of HFC ROS as of Part 3, and is
+This document covers the security posture of HCF ROS as of Part 3, and is
 written to be read alongside the code it describes rather than as a
 standalone claim.
 
@@ -77,13 +77,16 @@ origin(s); do not set it to *.
 
 ## Payment webhook security
 
-Razorpay webhook signatures are verified with HMAC-SHA256 over the exact raw
-request bytes and a timing-safe comparison using RAZORPAY_WEBHOOK_SECRET.
-The mock provider uses PAYMENT_WEBHOOK_SECRET. PaymentService never sets
-paymentStatus: 'PAID' from a client-supplied value. Juspay callbacks are
-treated only as a trigger to query the order status from the authenticated
-Juspay API; the callback body itself is not trusted. Juspay refunds are not
-implemented in the current provider.
+Webhooks are HMAC-SHA256 signed (PAYMENT_WEBHOOK_SECRET) and verified with
+a timing-safe comparison (utils/webhookSignature.ts) before any payment
+status is trusted. Scoped limitation: the signature is computed over the
+JSON-stringified parsed body rather than the exact raw request bytes,
+because this project's Express app uses express.json() globally. A real
+gateway integration should switch the webhook route specifically to
+express.raw({ type: 'application/json' }) and verify against the exact
+bytes the gateway signed. PaymentService never sets paymentStatus: 'PAID'
+from a client-supplied value under any code path - only CASH (synchronous,
+staff-witnessed) or a verified webhook can do that.
 
 ## Secrets and environment variables
 

@@ -16,6 +16,7 @@ export type OrderActionKey =
   | 'CANCEL'
   | 'PRINT_CUSTOMER'
   | 'PRINT_KITCHEN'
+  | 'PRINT_TOKEN'
   | 'VIEW';
 
 /** Computed by the backend state machine for the logged-in user — the UI renders exactly these and nothing else. */
@@ -46,6 +47,7 @@ export interface Outlet {
   phone: string;
   email: string;
   isActive: boolean;
+  openingHours?: { day: string; openTime: string; closeTime: string; isClosed: boolean }[];
   settings: {
     taxPercentage: number;
     packagingCharge: number;
@@ -183,4 +185,9 @@ export interface Customer {
   mobile: string;
   email?: string;
   addresses: Address[];
+}
+
+/** `GET /customers/me` - the customer plus whether they can place a delivery order yet. */
+export interface CustomerProfile extends Customer {
+  delivery: { ready: boolean; missing: ('name' | 'address')[]; defaultAddressId?: string };
 }

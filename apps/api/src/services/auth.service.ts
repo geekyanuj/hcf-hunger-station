@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { User } from '../models/User';
+import { isSameAddress } from './customer.service';
 import { Customer, IAddress } from '../models/Customer';
 import { Role } from '../models/Role';
 import { RefreshToken } from '../models/RefreshToken';
@@ -100,7 +101,7 @@ export const AuthService = {
       // Existing customer: refresh their saved details on every login.
       customer.name = payload.name;
       if (payload.email) customer.email = payload.email;
-      if (payload.address?.line1) {
+      if (payload.address?.line1 && !customer.addresses.some((a) => isSameAddress(a, payload.address as IAddress))) {
         const hasDefault = customer.addresses.some((a) => a.isDefault);
         customer.addresses.push({
           label: payload.address.label || 'Home',

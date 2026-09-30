@@ -1,47 +1,32 @@
-import { Request, Response } from "express";
-import { asyncHandler } from "../utils/asyncHandler";
-import { sendSuccess } from "../utils/apiResponse";
-import { ApiError } from "../utils/ApiError";
-import { PaymentService } from "../services/payment.service";
-import { signWebhookPayload } from "../utils/webhookSignature";
-import { env } from "../config/env";
-import { actorFromAuth } from "../services/orderStateMachine";
+import { Request, Response } from 'express';
+import { asyncHandler } from '../utils/asyncHandler';
+import { sendSuccess } from '../utils/apiResponse';
+import { ApiError } from '../utils/ApiError';
+import { PaymentService } from '../services/payment.service';
+import { verifyWebhookSignature, signWebhookPayload } from '../utils/webhookSignature';
+import { env } from '../config/env';
+import { actorFromAuth } from '../services/orderStateMachine';
 
 export const PaymentController = {
   initiate: asyncHandler(async (req: Request, res: Response) => {
     const { orderId, method, amount } = req.body;
-    const result = await PaymentService.initiate(
-      orderId,
-      method,
-      amount,
-      actorFromAuth(req.auth),
-    );
-    return sendSuccess(res, result, "Payment initiated", 201);
+    const result = await PaymentService.initiate(orderId, method, amount, actorFromAuth(req.auth));
+    return sendSuccess(res, result, 'Payment initiated', 201);
   }),
 
-  /** Provider-specific verification runs before a webhook can update a payment. */
+  /**
+   * Never trust an unsigned webhook — see utils/webhookSignature.ts. A
+   * request without a valid HMAC signature is rejected before it ever
+   * reaches PaymentService, so a forged "payment successful" callback
+   * cannot mark an order as paid.
+   */
   webhook: asyncHandler(async (req: Request, res: Response) => {
-    const signature = (
-      req.headers["x-razorpay-signature"] ??
-      req.headers["x-juspay-signature"] ??
-      req.headers["x-webhook-signature"]
-    ) as string | undefined;
-
-    const rawBody = (req as Request & { rawBody?: Buffer }).rawBody;
-    const providerName = typeof req.params.provider === 'string'
-      ? req.params.provider.toUpperCase()
-      : undefined;
-    const payment = await PaymentService.handleWebhook(req.body, signature, rawBody, providerName);
-
-    return sendSuccess(res, payment, "Webhook processed");
-  }),
-
-  juspayReturn: asyncHandler(async (req: Request, res: Response) => {
-    const orderId = req.query.order_id;
-    if (typeof orderId === 'string') {
-      await PaymentService.handleWebhook({ order_id: orderId }, undefined, undefined, 'JUSPAY');
+    const signature = req.headers['x-webhook-signature'] as string | undefined;
+    if (!verifyWebhookSignature(req.body, signature)) {
+      throw ApiError.unauthorized('Invalid webhook signature');
     }
-    return res.redirect(303, env.corsOrigin);
+    const payment = await PaymentService.handleWebhook(req.body, signature);
+    return sendSuccess(res, payment, 'Webhook processed');
   }),
 
   /**
@@ -54,26 +39,21 @@ export const PaymentController = {
    * and to PAYMENT_PROVIDER=MOCK; returns 403 for any real provider.
    */
   devSimulateWebhook: asyncHandler(async (req: Request, res: Response) => {
-    if (env.payment.provider !== "MOCK") {
-      throw ApiError.forbidden(
-        "Webhook simulation is only available when PAYMENT_PROVIDER=MOCK",
-      );
+    if (env.payment.provider !== 'MOCK') {
+      throw ApiError.forbidden('Webhook simulation is only available when PAYMENT_PROVIDER=MOCK');
     }
     const { providerReferenceId, status } = req.body;
-    const body = { providerReferenceId, status: status ?? "SUCCESS" };
+    const body = { providerReferenceId, status: status ?? 'SUCCESS' };
     const signature = signWebhookPayload(body);
     const payment = await PaymentService.handleWebhook(body, signature);
-    return sendSuccess(res, payment, "Webhook simulated (dev/mock only)");
+    return sendSuccess(res, payment, 'Webhook simulated (dev/mock only)');
   }),
 
   refund: asyncHandler(async (req: Request, res: Response) => {
     const { orderId, amount } = req.body;
-    const userId = req.auth?.type === "STAFF" ? req.auth.sub : undefined;
-    const payment = await PaymentService.refund(orderId, amount, {
-      userId,
-      ipAddress: req.ip,
-    });
-    return sendSuccess(res, payment, "Refund processed");
+    const userId = req.auth?.type === 'STAFF' ? req.auth.sub : undefined;
+    const payment = await PaymentService.refund(orderId, amount, { userId, ipAddress: req.ip });
+    return sendSuccess(res, payment, 'Refund processed');
   }),
 
   listForOrder: asyncHandler(async (req: Request, res: Response) => {

@@ -20,7 +20,7 @@ detected later.
 
 ```bash
 MONGO_URI="mongodb://user:pass@host:27017/hfc_ros?authSource=admin" \
-  ./scripts/backup.sh /var/backups/hfc-ros
+  ./scripts/backup.sh /var/backups/hcf-ros
 ```
 
 ### scripts/verify-backup.sh <backup-directory> [--test-restore]
@@ -32,7 +32,7 @@ Drop the scratch database yourself afterward (the script prints the exact
 command).
 
 ```bash
-./scripts/verify-backup.sh /var/backups/hfc-ros/hfc_ros_20260101_020000 --test-restore
+./scripts/verify-backup.sh /var/backups/hcf-ros/hfc_ros_20260101_020000 --test-restore
 ```
 
 ### scripts/restore.sh <backup-directory> [target-mongo-uri]
@@ -42,7 +42,7 @@ collections of the same name. It pauses 5 seconds before running so you
 have a chance to Ctrl+C if you ran it against the wrong target by mistake.
 
 ```bash
-./scripts/restore.sh /var/backups/hfc-ros/hfc_ros_20260101_020000 \
+./scripts/restore.sh /var/backups/hcf-ros/hfc_ros_20260101_020000 \
   "mongodb://user:pass@host:27017/hfc_ros?authSource=admin"
 ```
 
@@ -54,7 +54,7 @@ retention window explicitly and prune deliberately, rather than baking
 silent deletion into the backup script itself.
 
 ```cron
-0 2 * * * MONGO_URI="mongodb://..." /path/to/scripts/backup.sh /var/backups/hfc-ros >> /var/log/hfc-backup.log 2>&1
+0 2 * * * MONGO_URI="mongodb://..." /path/to/scripts/backup.sh /var/backups/hcf-ros >> /var/log/hcf-backup.log 2>&1
 ```
 
 Run verify-backup.sh --test-restore periodically (weekly is reasonable)

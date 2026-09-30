@@ -1,6 +1,6 @@
 # User Roles and Permissions
 
-HFC ROS uses permission-based authorization (see config/permissions.ts)
+HCF ROS uses permission-based authorization (see config/permissions.ts)
 with six seeded roles. A role is just a named bundle of permissions stored
 in the Role collection - route/service code checks the permission, never
 the role name directly, so permissions can be edited per-deployment

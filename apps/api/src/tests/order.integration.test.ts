@@ -20,7 +20,7 @@ async function seedBasics() {
     code: 'INT',
     address: 'Addr',
     phone: '+919999999998',
-    email: 'int@hfc.example',
+    email: 'int@hcf.example',
   });
   const category = await MenuCategory.create({ outletId: outlet._id, name: 'Burgers', slug: 'burgers' });
   const item = await MenuItem.create({
@@ -44,7 +44,7 @@ describe('Auth + Order flow', () => {
 
   it('logs in staff and rejects wrong password', async () => {
     await seedBasics();
-    const badLogin = await request(app).post('/api/v1/auth/staff/login').send({ email: 'manager@int.example', password: 'wrong' });
+    const badLogin = await request(app).post('/api/v1/auth/staff/login').send({ email: 'manager@int.example', password: 'wrong-password' });
     expect(badLogin.status).toBe(401);
 
     const goodLogin = await request(app).post('/api/v1/auth/staff/login').send({ email: 'manager@int.example', password: 'Passw0rd!123' });

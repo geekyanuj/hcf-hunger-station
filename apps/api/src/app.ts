@@ -23,12 +23,7 @@ export function createApp(): Application {
     })
   );
   app.use(compression());
-  app.use(express.json({
-    limit: '2mb',
-    verify: (req, _res, buffer) => {
-      (req as express.Request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
-    },
-  }));
+  app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use(sanitizeInput);
@@ -41,7 +36,7 @@ export function createApp(): Application {
     })
   );
 
-  app.get('/health', (_req, res) => res.json({ success: true, message: 'HFC ROS API is healthy', timestamp: new Date().toISOString() }));
+  app.get('/health', (_req, res) => res.json({ success: true, message: 'HCF ROS API is healthy', timestamp: new Date().toISOString() }));
 
   // Uploaded menu item images (see middleware/upload.ts). Served under the same
   // origin/port as the API, and proxied by nginx at /uploads/ in production

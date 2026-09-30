@@ -6,8 +6,6 @@ import { authorize } from '../middleware/authorize';
 const router = Router();
 
 router.post('/', optionalAuthenticate, PaymentController.initiate);
-router.get('/juspay/return', PaymentController.juspayReturn);
-router.post('/webhook/:provider', PaymentController.webhook);
 router.post('/webhook', PaymentController.webhook); // called by the payment gateway itself, no user auth
 router.post('/refund', authenticate, requireStaff, authorize('payments.refund'), PaymentController.refund);
 router.post('/dev/simulate-webhook', authenticate, requireStaff, PaymentController.devSimulateWebhook);

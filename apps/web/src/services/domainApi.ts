@@ -1,5 +1,5 @@
 import { api } from './apiClient';
-import { CartLine, MenuSection, Order, Outlet, OrderType, OrderPaymentMethod, PricedCart } from '@/types/domain';
+import { CartLine, CustomerProfile, MenuSection, Order, Outlet, OrderType, OrderPaymentMethod, PricedCart } from '@/types/domain';
 
 export const OutletApi = {
   list: async (): Promise<Outlet[]> => (await api.get('/outlets')).data.data,
@@ -74,7 +74,23 @@ export const AuthApi = {
   staffLogin: async (email: string, password: string) => (await api.post('/auth/staff/login', { email, password })).data.data,
 };
 
+export interface DeliveryAddressInput {
+  label?: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
 export const CustomerApi = {
-  me: async () => (await api.get('/customers/me')).data.data,
+  me: async (): Promise<CustomerProfile> => (await api.get('/customers/me')).data.data,
+  /** The "name + address" step required before a delivery order. Edits `addressId` if given, otherwise adds. */
+  saveDeliveryDetails: async (payload: { name: string; email?: string; addressId?: string; address: DeliveryAddressInput }): Promise<CustomerProfile> =>
+    (await api.put('/customers/me/delivery-details', payload)).data.data,
+  setDefaultAddress: async (addressId: string): Promise<CustomerProfile> =>
+    (await api.patch(`/customers/me/addresses/${addressId}/default`)).data.data,
+  removeAddress: async (addressId: string): Promise<CustomerProfile> =>
+    (await api.delete(`/customers/me/addresses/${addressId}`)).data.data,
   myOrders: async () => (await api.get('/customers/me/orders')).data.data,
 };

@@ -1,4 +1,4 @@
-# API Documentation — HFC Restaurant OS (Part 1)
+# API Documentation — HCF Restaurant OS (Part 1)
 
 Base URL: `http://localhost:4000/api/v1` (dev) — all routes below are
 relative to this. Health check (unversioned): `GET /health`.
@@ -251,3 +251,18 @@ See `apps/api/src/config/permissions.ts` for the full list (`orders.*`,
 `purchases.manage`, `wastage.manage`, `audit.read`, `reports.read`,
 `users.manage`, `menu.*`, `outlets.*`, `tables.manage`, `payments.*`,
 `delivery.*`, `customers.manage`) and the default role→permission mapping.
+
+## Delivery details, token printing and dashboard reset (added)
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| `GET` | `/customers/me` | customer | Profile plus `delivery: { ready, missing: ['name'\|'address'], defaultAddressId }` - `ready` is `false` until the customer has a name and one complete saved address |
+| `PUT` | `/customers/me/delivery-details` | customer | `{ name, email?, addressId?, address }` - updates the name and edits `addressId` (or adds/reuses an address) and makes it the default. Pincode must be 6 digits |
+| `POST` | `/customers/me/addresses` | customer | Add an address (an identical one is not duplicated) |
+| `PATCH` | `/customers/me/addresses/:addressId/default` | customer | Make an address the default |
+| `DELETE` | `/customers/me/addresses/:addressId` | customer | Remove; another address becomes default |
+| `POST` | `/dashboard/reset?outletId=` | `dashboard.reset` (Owner) | `{ password }` - verifies the caller's password, then the dashboard counts from now. Non-destructive; audit-logged (`DASHBOARD_RESET`). `403 Incorrect password`, `429` after 5 wrong attempts (15 min) |
+| `GET/POST` | `/print/...` | `tokens.print` (Owner, Manager, Cashier) | See [PRINTING.md](PRINTING.md) |
+
+`GET /dashboard/overview` now also returns `lastReset: { at, by } | null`.
+Order `availableActions` include `PRINT_TOKEN` for roles holding `tokens.print`.

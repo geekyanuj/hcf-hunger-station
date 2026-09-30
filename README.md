@@ -1,7 +1,6 @@
+# HCF Restaurant Operating System (ROS)
 
-# HFC Restaurant Operating System (ROS)
-
-A production-grade, multi-outlet restaurant management platform: **Customer →
+A production-grade restaurant management platform (currently running a single outlet, **HCF Azadnagar**, Dhanbad): **Customer →
 Ordering → Payment → Token → Kitchen → Preparation → Ready → Pickup/Serve →
 Sales.** Built as a TypeScript monorepo (React/Vite web app + Express/MongoDB
 API) with real-time order tracking over Socket.IO.
@@ -10,14 +9,23 @@ This document covers Part 1, Part 2, **and Part 3 (final)**. Part 3 adds an
 owner/admin dashboard, server-side analytics, coupons, customer loyalty,
 scheduled orders, party/catering requests, notifications, delivery
 management, global search, CSV exports, and production hardening (Redis
-caching, signed payment webhooks, HTTPS nginx config, backup scripts)
+caching, signed payment webhooks, HTTPS nginx config, backup scripts) — see
+[`docs/PART3.md`](docs/PART3.md) for the full module-by-module writeup, and
+[`docs/PART2.md`](docs/PART2.md) / this file's history for Parts 1-2.
+
+Full documentation index: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) ·
+[`API.md`](docs/API.md) · [`DATABASE.md`](docs/DATABASE.md) ·
+[`DEPLOYMENT.md`](docs/DEPLOYMENT.md) · [`SECURITY.md`](docs/SECURITY.md) ·
+[`BACKUP.md`](docs/BACKUP.md) · [`USER_ROLES.md`](docs/USER_ROLES.md) ·
+[`OPERATIONS.md`](docs/OPERATIONS.md) · [`PART2.md`](docs/PART2.md) ·
+[`PART3.md`](docs/PART3.md)
 
 ---
 
 ## 1. Architecture at a glance
 
 ```
-hfc-restaurant-system/
+hcf-restaurant-system/
 ├── apps/
 │   ├── web/     React 18 + TS + Vite + Tailwind — customer ordering app
 │   └── api/     Express + TS + MongoDB/Mongoose — REST API + Socket.IO
@@ -57,11 +65,9 @@ Key variables (see `.env.example` for the full list and defaults):
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | JWT signing secrets — **must** be changed in production |
 | `JWT_ACCESS_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | Token lifetimes (default 15m / 7d) |
 | `CORS_ORIGIN` | Allowed frontend origin |
-| `PAYMENT_PROVIDER` | `MOCK`, `RAZORPAY`, or `JUSPAY`; change in `.env` and recreate the API container |
-| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | Razorpay API credentials when `PAYMENT_PROVIDER=RAZORPAY` |
-| `RAZORPAY_WEBHOOK_SECRET` | Razorpay webhook signing secret; configure `/api/v1/payments/webhook/razorpay` for `payment_link.paid`, `payment_link.cancelled`, and `payment_link.expired` |
-| `JUSPAY_*` | Juspay merchant, client, environment, and key-file settings when `PAYMENT_PROVIDER=JUSPAY`; payment status is confirmed through the Juspay status API, but refunds are not implemented |
-| `PAYMENT_WEBHOOK_SECRET` | Mock-provider webhook secret |
+| `PAYMENT_PROVIDER` | `MOCK` (see §8 and `docs/SECURITY.md`) |
+| `PAYMENT_WEBHOOK_SECRET` | HMAC secret webhooks are signed/verified with — **must** be changed in production |
+| `PRINTER_DRIVER` (+ `PRINTER_HOST`, `PRINTER_PORT`, `PRINTER_DEVICE_PATH`, `PRINTER_PAPER_WIDTH`, ...) | Thermal token printer. Default `DISABLED` = browser print. See `docs/PRINTING.md` |
 | `VITE_API_BASE_URL` / `VITE_SOCKET_URL` | Frontend → API/socket endpoints |
 
 Never commit a real `.env` file. Secrets are read only from environment
@@ -120,16 +126,16 @@ installed `mongod`) to execute them.
 
 ## 7. Test credentials (seeded)
 
-**Staff** (email + password, all outlets unless noted):
+**Staff** (email + password; HCF runs from one outlet, **HCF Azadnagar**):
 
 | Role | Email | Password |
 |---|---|---|
-| OWNER (all outlets) | `owner@hfc.example` | `Passw0rd!123` |
-| MANAGER (Bank More) | `manager.bankmore@hfc.example` | `Passw0rd!123` |
-| CASHIER (Bank More) | `cashier.bankmore@hfc.example` | `Passw0rd!123` |
-| KITCHEN (Bank More) | `kitchen.bankmore@hfc.example` | `Passw0rd!123` |
-| INVENTORY (Bank More) | `inventory.bankmore@hfc.example` | `Passw0rd!123` |
-| DELIVERY (Bank More) | `delivery.bankmore@hfc.example` | `Passw0rd!123` |
+| OWNER | `owner@hcf.example` | `Passw0rd!123` |
+| MANAGER | `manager.azadnagar@hcf.example` | `Passw0rd!123` |
+| CASHIER | `cashier.azadnagar@hcf.example` | `Passw0rd!123` |
+| KITCHEN | `kitchen.azadnagar@hcf.example` | `Passw0rd!123` |
+| INVENTORY | `inventory.azadnagar@hcf.example` | `Passw0rd!123` |
+| DELIVERY | `delivery.azadnagar@hcf.example` | `Passw0rd!123` |
 
 Staff sign in at **`/staff/login`** in the web app, which routes to `/pos`,
 `/kds`, or `/inventory/*` depending on their permissions (the nav bar only
@@ -140,6 +146,40 @@ server).
 `POST /api/v1/auth/customer/otp/request`; in development the OTP is returned
 in the response body and also printed to the API server console (no SMS
 provider is wired up — see §8).
+
+## 7a. HCF Azadnagar setup, delivery details, token printing, dashboard reset
+
+**Single outlet.** `npm run seed` creates exactly one outlet: **HCF Azadnagar** -
+Azadnagar, Dhanbad, Jharkhand - open **10:00 AM - 11:00 PM**. The customer app selects it
+automatically (no outlet picker). Update its phone/email in *Admin -> Outlet Settings*.
+Already running the old three-outlet database? Run this once (safe to repeat):
+
+```bash
+npm run migrate:single-outlet
+```
+
+It converts the old Bank More outlet into HCF Azadnagar **in place** (menu, tables, inventory and
+order history are kept), retires the other two outlets (soft-delete, nothing hard-deleted), points
+all staff at the single outlet, renames `@hfc.example` staff logins to `@hcf.example`, grants the new
+permissions to the existing roles, and lists staff who only worked at closed outlets so you can
+deactivate them. **Everyone signs in again once afterwards.**
+
+**Delivery needs a name + address first.** When a customer chooses *Delivery* (on the home page,
+from the cart, or at checkout) the app checks that they are signed in and have a saved name and
+address. If not, they are sent to the *Delivery details* page, then return to where they were.
+Saved addresses can be picked, edited or removed at checkout and on the Account page. The check
+lives in `GET /customers/me` (`delivery.ready` / `delivery.missing`).
+
+**Token printing** (Owner, Manager, Cashier - permission `tokens.print`): a *Print Token* button
+on every order (Current Orders) and in the POS (with an optional *Auto-print token* switch).
+Works immediately through the browser print dialog; connect a thermal printer by setting
+`PRINTER_*` variables in the API environment - see **[docs/PRINTING.md](docs/PRINTING.md)**.
+*Admin -> Printer* shows the connection, prints a test slip and lists recent prints.
+
+**Reset dashboard** (Owner only - permission `dashboard.reset`): *Admin -> Dashboard -> Reset
+dashboard* asks for the owner's password (verified on the server; 5 wrong tries lock it for 15
+minutes) and then the dashboard counts from zero. **Nothing is deleted** - orders, payments,
+Analytics and exports keep the full history; every reset is written to the audit log.
 
 ## 8. Known Limitations
 
@@ -179,10 +219,12 @@ integration) knows exactly what to plug in.
 
 **From Part 3:**
 
-- **Payment providers can be selected by env**: Razorpay hosted Payment
-  Links and Juspay hosted checkout with server-side status verification are
-  wired. Razorpay supports signed webhook settlement and refunds. Juspay
-  refunds are not implemented yet (see `docs/SECURITY.md`).
+- **Payment gateway is still the mock provider**, now with a real,
+  HMAC-verified webhook path and split/partial payments. No real Indian
+  payment gateway (Razorpay/PhonePe/etc.) credentials are wired in —
+  swapping one in means implementing `PaymentProvider` once (see
+  `services/payment/`) and switching the webhook route to raw-body
+  verification (see `docs/SECURITY.md`).
 - **Loyalty tiers, birthday offers, and referral bonuses are not built.**
   The ledger and config architecture (`LoyaltyConfig`, `LoyaltyTransaction`)
   is deliberately shaped so these can be added without a schema migration,

@@ -6,6 +6,7 @@ import { MenuApi } from '@/services/domainApi';
 import { useCartStore } from '@/stores/cart.store';
 import { Card, CardContent, Skeleton, Badge, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
+import { useSingleOutlet } from '@/hooks/useSingleOutlet';
 import { AddToCartModal } from '@/components/customer/AddToCartModal';
 import { formatCurrency, cn } from '@/utils/cn';
 import { resolveImageUrl } from '@/services/apiClient';
@@ -16,6 +17,7 @@ type VegFilter = 'ALL' | 'VEG' | 'NONVEG';
 export default function MenuPage() {
   const navigate = useNavigate();
   const outletId = useCartStore((s) => s.outletId);
+  const { isLoading: outletLoading } = useSingleOutlet();
   const orderType = useCartStore((s) => s.orderType);
   const itemCount = useCartStore((s) => s.itemCount());
   const [search, setSearch] = useState('');
@@ -43,11 +45,16 @@ export default function MenuPage() {
   }, [sections, activeCategory, search, vegFilter]);
 
   if (!outletId) {
-    return (
+    return outletLoading ? (
+      <div className="space-y-3">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-40" />
+      </div>
+    ) : (
       <div className="py-16 text-center">
-        <p className="text-neutral-500">Please choose an outlet first.</p>
+        <p className="text-neutral-500">We're not taking orders right now.</p>
         <Button className="mt-4" onClick={() => navigate('/')}>
-          Choose outlet
+          Back to home
         </Button>
       </div>
     );

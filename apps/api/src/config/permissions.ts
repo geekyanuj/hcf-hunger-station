@@ -46,6 +46,10 @@ export const PERMISSIONS = [
   'delivery.read',
   'delivery.update',
   'customers.manage',
+  /** Print order tokens on the thermal printer (OWNER, MANAGER, CASHIER). */
+  'tokens.print',
+  /** Reset the admin dashboard baseline (password re-entry required). OWNER only by default. */
+  'dashboard.reset',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -82,6 +86,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     'payments.read', 'payments.process', 'payments.refund',
     'delivery.read', 'delivery.update',
     'customers.manage',
+    'tokens.print',
   ],
   CASHIER: [
     'orders.read', 'orders.create', 'orders.update', 'orders.cancel', 'orders.discount',
@@ -89,6 +94,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, Permission[]> = {
     'inventory.read',
     'payments.read', 'payments.process',
     'customers.manage',
+    'tokens.print',
   ],
   KITCHEN: ['kds.read', 'kds.update', 'orders.read', 'menu.read'],
   INVENTORY: [

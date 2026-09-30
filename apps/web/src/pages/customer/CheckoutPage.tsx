@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { OrderApi } from '@/services/domainApi';
 import { useCartStore } from '@/stores/cart.store';
@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { formatCurrency } from '@/utils/cn';
 import { extractErrorMessage } from '@/services/apiClient';
-import { CreditCard, Wallet, Smartphone, Banknote, Clock, UtensilsCrossed } from 'lucide-react';
+import { CreditCard, Wallet, Smartphone, Banknote, Clock, UtensilsCrossed, MapPin } from 'lucide-react';
+import { deliverySetupPath, useDeliveryReadiness } from '@/hooks/useDeliveryReadiness';
 import { cn } from '@/utils/cn';
 
 const PAYMENT_METHODS = [
@@ -31,7 +32,11 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { push } = useToast();
   const { outletId, orderType, lines, tableQrToken, couponCode, clear } = useCartStore();
-  const [address, setAddress] = useState({ line1: '', line2: '', city: '', state: 'Jharkhand', pincode: '' });
+  const delivery = useDeliveryReadiness();
+  const addresses = delivery.profile?.addresses ?? [];
+  const [pickedAddressId, setPickedAddressId] = useState<string | null>(null);
+  // Chosen address: the one picked here, else the saved default.
+  const address = addresses.find((a) => a._id === pickedAddressId) ?? addresses.find((a) => a._id === delivery.profile?.delivery.defaultAddressId) ?? addresses[0];
   const [notes, setNotes] = useState('');
   const [method, setMethod] = useState<MethodId>('CASH');
   const [scheduleMode, setScheduleMode] = useState<'ASAP' | 'SCHEDULED'>('ASAP');
@@ -53,7 +58,10 @@ export default function CheckoutPage() {
         // Pay After Dine In is only valid for dine-in orders; make sure a stale selection can never leak into another type.
         paymentMethod: method === 'PAY_AFTER_DINE_IN' && orderType !== 'DINE_IN' ? undefined : method,
         couponCode: couponCode ?? undefined,
-        deliveryAddress: orderType === 'DELIVERY' ? address : undefined,
+        deliveryAddress:
+          orderType === 'DELIVERY' && address
+            ? { line1: address.line1, line2: address.line2, city: address.city, state: address.state, pincode: address.pincode }
+            : undefined,
         customerNotes: notes || undefined,
         scheduledAt: scheduleMode === 'SCHEDULED' ? new Date(scheduledAt).toISOString() : undefined,
       }),
@@ -65,7 +73,12 @@ export default function CheckoutPage() {
     onError: (err) => push(extractErrorMessage(err), 'error'),
   });
 
-  const isDeliveryValid = orderType !== 'DELIVERY' || (address.line1 && address.city && address.pincode);
+  const isDeliveryValid = orderType !== 'DELIVERY' || (delivery.status === 'READY' && !!address);
+
+  // Delivery needs a signed-in customer with a saved name + address: collect them first, then return here.
+  if (orderType === 'DELIVERY' && (delivery.status === 'LOGIN_REQUIRED' || delivery.status === 'DETAILS_REQUIRED')) {
+    return <Navigate to={deliverySetupPath(delivery.status, '/checkout')} replace />;
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -100,12 +113,33 @@ export default function CheckoutPage() {
         {orderType === 'DELIVERY' && (
           <Card>
             <CardContent className="space-y-3">
-              <h2 className="font-semibold text-ink-900">Delivery Address</h2>
-              <Input placeholder="Address line 1" value={address.line1} onChange={(e) => setAddress({ ...address, line1: e.target.value })} />
-              <Input placeholder="Address line 2 (optional)" value={address.line2} onChange={(e) => setAddress({ ...address, line2: e.target.value })} />
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="City" value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })} />
-                <Input placeholder="Pincode" value={address.pincode} onChange={(e) => setAddress({ ...address, pincode: e.target.value })} />
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-ink-900">Delivery Address</h2>
+                <Link to={`/delivery-details?next=${encodeURIComponent('/checkout')}`} className="text-xs font-semibold text-brand-600 hover:underline">
+                  Change / add address
+                </Link>
+              </div>
+              {delivery.status === 'LOADING' && <p className="text-sm text-neutral-500">Loading your saved address…</p>}
+              {delivery.profile && (
+                <p className="text-sm text-neutral-600">
+                  Delivering to <span className="font-semibold text-ink-900">{delivery.profile.name}</span> · {delivery.profile.mobile}
+                </p>
+              )}
+              <div className="space-y-2">
+                {addresses.map((a) => (
+                  <button
+                    key={a._id}
+                    type="button"
+                    onClick={() => setPickedAddressId(a._id ?? null)}
+                    className={cn(
+                      'flex w-full items-start gap-2 rounded-xl border p-3 text-left text-sm',
+                      address?._id === a._id ? 'border-brand-500 bg-brand-50' : 'border-neutral-200'
+                    )}
+                  >
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
+                    <span className="text-neutral-700">{[a.line1, a.line2, a.city, a.state, a.pincode].filter(Boolean).join(', ')}</span>
+                  </button>
+                ))}
               </div>
             </CardContent>
           </Card>

@@ -13,6 +13,17 @@ import { formatCurrency } from '@/utils/cn';
 import { cn } from '@/utils/cn';
 import { CartLine, OrderType } from '@/types/domain';
 import { ORDER_TYPE_LABEL } from '@/utils/orderStatus';
+import { useSessionStore } from '@/stores/session.store';
+import { printTokenForOrder } from '@/utils/printToken';
+
+const AUTO_PRINT_KEY = 'hcf-pos-auto-print-token';
+function readAutoPrint(): boolean {
+  try {
+    return localStorage.getItem(AUTO_PRINT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
 
 const ORDER_TYPES: { value: OrderType; label: string }[] = (['POS', 'DINE_IN', 'TAKEAWAY', 'DELIVERY'] as OrderType[]).map((value) => ({
   value,
@@ -35,6 +46,33 @@ export default function POSPage() {
   const [discountPercent, setDiscountPercent] = useState(0);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [receiptOrderId, setReceiptOrderId] = useState<string | null>(null);
+
+  // Token printing (thermal printer / browser fallback): OWNER, MANAGER and CASHIER only.
+  const canPrintToken = useSessionStore((st) => st.hasPermission('tokens.print'));
+  const [lastOrder, setLastOrder] = useState<{ id: string; token: string; number: string } | null>(null);
+  const [autoPrint, setAutoPrint] = useState<boolean>(readAutoPrint);
+  const [printing, setPrinting] = useState(false);
+
+  async function printToken(target: { id: string; token: string }) {
+    setPrinting(true);
+    try {
+      const outcome = await printTokenForOrder(target.id, target.token);
+      push(outcome.message, outcome.via === 'BROWSER_FALLBACK' ? 'info' : 'success');
+    } catch (err) {
+      push(extractErrorMessage(err), 'error');
+    } finally {
+      setPrinting(false);
+    }
+  }
+
+  function toggleAutoPrint(on: boolean) {
+    setAutoPrint(on);
+    try {
+      localStorage.setItem(AUTO_PRINT_KEY, on ? '1' : '0');
+    } catch {
+      /* private mode etc. - the toggle still works for this session */
+    }
+  }
 
   const { data: sections, isLoading } = useQuery({
     queryKey: ['pos-menu', activeOutletId],
@@ -107,6 +145,8 @@ export default function POSPage() {
     onSuccess: (order, payAfterDining) => {
       queryClient.invalidateQueries({ queryKey: ['kds-board'] });
       queryClient.invalidateQueries({ queryKey: ['current-orders'] });
+      setLastOrder({ id: order._id, token: order.tokenNumber, number: order.orderNumber });
+      if (canPrintToken && autoPrint) void printToken({ id: order._id, token: order.tokenNumber });
       if (payAfterDining) {
         push(`Order ${order.orderNumber} placed for table ${order.tableNumber} — payment after dining`, 'success');
         resetCart();
@@ -241,6 +281,18 @@ export default function POSPage() {
         </div>
 
         <div className="space-y-2 border-t border-neutral-200 p-3">
+          {canPrintToken && (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-3 py-2">
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
+                <input type="checkbox" checked={autoPrint} onChange={(e) => toggleAutoPrint(e.target.checked)} className="h-3.5 w-3.5 accent-brand-500" />
+                Auto-print token
+              </label>
+              <Button size="sm" variant="outline" disabled={!lastOrder || printing} onClick={() => lastOrder && printToken(lastOrder)}>
+                <Printer className="mr-1.5 h-3.5 w-3.5" />
+                {printing ? 'Printing…' : lastOrder ? `Print token ${lastOrder.token}` : 'Print token'}
+              </Button>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Percent className="h-4 w-4 text-neutral-400" />
             <Input

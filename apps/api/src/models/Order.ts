@@ -79,7 +79,7 @@ export interface IDeliveryAddressSnapshot {
 }
 
 export interface IOrder extends Document {
-  orderNumber: string; // e.g. HFC284
+  orderNumber: string; // e.g. HCF284
   tokenNumber: string; // e.g. T-104, D-057, O-286
   outletId: Types.ObjectId;
   customerId?: Types.ObjectId;

@@ -6,11 +6,11 @@ import { OrderType } from '../models/Order';
 import { businessDateToday } from '../utils/format';
 
 export const TokenService = {
-  /** Generates a globally-unique, human-friendly order number, e.g. "HFC284". */
+  /** Generates a globally-unique, human-friendly order number, e.g. "HCF284". */
   async nextOrderNumber(outletId: Types.ObjectId | string): Promise<string> {
     const outlet = await Outlet.findById(outletId).select('code');
     const seq = await getNextSequence(`ORDER:${outletId}`);
-    const prefix = outlet?.code ? outlet.code.slice(0, 3) : 'HFC';
+    const prefix = outlet?.code ? outlet.code.slice(0, 3) : 'HCF';
     return `${prefix}${seq}`;
   },
 

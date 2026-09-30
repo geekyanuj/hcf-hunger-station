@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AuthApi } from '@/services/domainApi';
 import { useSessionStore } from '@/stores/session.store';
 import { Card, CardContent, Input } from '@/components/ui/primitives';
@@ -7,6 +8,9 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { extractErrorMessage } from '@/services/apiClient';
 import { LogOut } from 'lucide-react';
+import { DeliveryDetailsForm } from '@/components/customer/DeliveryDetailsForm';
+import { CUSTOMER_PROFILE_KEY, safeNext, useCustomerProfile } from '@/hooks/useDeliveryReadiness';
+import { Skeleton } from '@/components/ui/primitives';
 interface LoginForm {
   name: string;
   mobile: string;
@@ -21,8 +25,14 @@ const emptyForm: LoginForm = { name: '', mobile: '', email: '', line1: '', city:
 
 export default function AccountPage() {
   const { push } = useToast();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [params] = useSearchParams();
+  const next = params.get('next');
+  const forDelivery = params.get('reason') === 'delivery';
   const { accessToken, displayName, principalType, clearSession, setSession } = useSessionStore();
   const [form, setForm] = useState<LoginForm>(emptyForm);
+  const { data: profile, isLoading: profileLoading } = useCustomerProfile();
 
   const login = useMutation({
     mutationFn: () =>
@@ -34,7 +44,12 @@ export default function AccountPage() {
       }),
     onSuccess: (data) => {
       setSession(data.accessToken, data.refreshToken, 'CUSTOMER', data.customer.name);
+      queryClient.removeQueries({ queryKey: CUSTOMER_PROFILE_KEY });
       push('Logged in successfully', 'success');
+      // Came here to order for delivery: no saved address yet -> straight to the name & address step.
+      const target = safeNext(next, '/');
+      if (forDelivery && (data.customer.addresses?.length ?? 0) === 0) navigate(`/delivery-details?next=${encodeURIComponent(target)}`, { replace: true });
+      else if (next) navigate(target, { replace: true });
     },
     onError: (err) => push(extractErrorMessage(err), 'error'),
   });
@@ -48,9 +63,18 @@ export default function AccountPage() {
               <p className="text-sm text-neutral-500">Signed in as</p>
               <p className="font-display text-lg font-bold text-ink-900">{displayName}</p>
             </div>
-            <Button variant="outline" size="sm" onClick={clearSession}>
+            <Button variant="outline" size="sm" onClick={() => { clearSession(); queryClient.removeQueries({ queryKey: CUSTOMER_PROFILE_KEY }); }}>
               <LogOut className="mr-1.5 h-4 w-4" /> Logout
             </Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="space-y-3">
+            <h2 className="font-display font-bold text-ink-900">Name &amp; delivery address</h2>
+            {profileLoading && <Skeleton className="h-48" />}
+            {profile && (
+              <DeliveryDetailsForm profile={profile} submitLabel="Save details" onSaved={() => next && navigate(safeNext(next, '/'), { replace: true })} />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -68,6 +92,11 @@ export default function AccountPage() {
             <h1 className="font-display text-lg font-bold text-ink-900">HCF Hunger Station</h1>
             <p className="text-xs italic text-neutral-400">Good Food, Happier People</p>
           </div>
+          {forDelivery && (
+            <p className="rounded-xl bg-brand-50 px-3 py-2 text-xs font-medium text-brand-700">
+              Please sign in to order delivery — we'll ask for your address next.
+            </p>
+          )}
           <p className="text-xs text-neutral-500">
             Just enter your details below — no OTP needed. If this is your first time, an account is created for you
             automatically.

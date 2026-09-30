@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { IndianRupee, ShoppingBag, TrendingUp, Bike, Package, UtensilsCrossed, Store, ChefHat, AlertTriangle, Boxes } from 'lucide-react';
+import { RotateCcw, IndianRupee, ShoppingBag, TrendingUp, Bike, Package, UtensilsCrossed, Store, ChefHat, AlertTriangle, Boxes } from 'lucide-react';
 import { useSessionStore } from '@/stores/session.store';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 import { OutletApi } from '@/services/domainApi';
 import { DashboardApi } from '@/services/staffApi';
 import { Card, CardContent, Skeleton } from '@/components/ui/primitives';
+import { Button } from '@/components/ui/Button';
+import { ResetDashboardDialog } from '@/components/staff/ResetDashboardDialog';
 import { formatCurrency } from '@/utils/cn';
 
 export default function AdminDashboardPage() {
   const { role, outletIds: myOutletIds } = useSessionStore();
+  const canReset = useSessionStore((st) => st.hasPermission('dashboard.reset'));
+  const [resetOpen, setResetOpen] = useState(false);
   const { activeOutletId } = useStaffOutletStore();
   const isOwner = role === 'OWNER';
   const [viewAll, setViewAll] = useState(isOwner);
@@ -18,7 +22,10 @@ export default function AdminDashboardPage() {
   const { data: outlets } = useQuery({ queryKey: ['outlets'], queryFn: OutletApi.list });
   const myOutlets = outlets?.filter((o) => myOutletIds.length === 0 || myOutletIds.includes(o._id)) ?? [];
 
-  const outletParam = viewAll && isOwner ? 'ALL' : activeOutletId ?? '';
+  // With a single outlet there is nothing to switch between.
+  const showSwitcher = isOwner && myOutlets.length > 1;
+  const outletParam = viewAll && showSwitcher ? 'ALL' : activeOutletId ?? '';
+  const scopeLabel = outletParam === 'ALL' ? 'all outlets' : myOutlets.find((o) => o._id === outletParam)?.name ?? 'this outlet';
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard-overview', outletParam],
@@ -30,7 +37,12 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold text-ink-900">Admin Dashboard</h1>
-        {isOwner && (
+        {canReset && (
+          <Button variant="outline" size="sm" onClick={() => setResetOpen(true)} disabled={!outletParam}>
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset dashboard
+          </Button>
+        )}
+        {showSwitcher && (
           <div className="flex gap-1.5 rounded-full border border-neutral-200 p-1">
             <button
               onClick={() => setViewAll(true)}
@@ -52,6 +64,15 @@ export default function AdminDashboardPage() {
       </div>
 
       {isLoading && <Skeleton className="h-64" />}
+
+      {data?.lastReset && (
+        <p className="rounded-xl bg-neutral-100 px-3 py-2 text-xs text-neutral-600">
+          Dashboard was reset by <b>{data.lastReset.by}</b> on {new Date(data.lastReset.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}. Figures below count from then;
+          Analytics still shows full history.
+        </p>
+      )}
+
+      {canReset && <ResetDashboardDialog open={resetOpen} onClose={() => setResetOpen(false)} outletParam={outletParam} scopeLabel={scopeLabel} />}
 
       {data && (
         <>

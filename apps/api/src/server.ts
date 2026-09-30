@@ -13,7 +13,7 @@ async function bootstrap() {
   initSockets(httpServer);
 
   httpServer.listen(env.port, () => {
-    logger.info(`HFC ROS API listening on port ${env.port} [${env.nodeEnv}]`);
+    logger.info(`HCF ROS API listening on port ${env.port} [${env.nodeEnv}]`);
   });
 
   const shutdown = (signal: string) => {
