@@ -160,7 +160,7 @@ npm run migrate:single-outlet
 
 It converts the old Bank More outlet into HCF Azadnagar **in place** (menu, tables, inventory and
 order history are kept), retires the other two outlets (soft-delete, nothing hard-deleted), points
-all staff at the single outlet, renames `@hfc.example` staff logins to `@hcf.example`, grants the new
+all staff at the single outlet, renames `@hcfhungerstation.space` staff logins to `@hcf.example`, grants the new
 permissions to the existing roles, and lists staff who only worked at closed outlets so you can
 deactivate them. **Everyone signs in again once afterwards.**
 

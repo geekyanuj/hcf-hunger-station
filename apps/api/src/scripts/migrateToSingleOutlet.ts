@@ -8,7 +8,7 @@
  *   - Saraidhela and Hirapur are soft-deleted (never hard-deleted, orders
  *     still reference them).
  *   - Every staff account is pointed at the single outlet and old
- *     `@hfc.example` logins are renamed to `@hcf.example`.
+ *     `@hcfhungerstation.space` logins are renamed to `@hcf.example`.
  *   - Roles receive the new `tokens.print` (Owner, Manager, Cashier) and
  *     `dashboard.reset` (Owner) permissions without touching other role edits.
  *

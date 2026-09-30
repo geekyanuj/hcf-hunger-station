@@ -18,7 +18,7 @@ import { LoyaltyConfig } from '../models/Loyalty';
 import { DEFAULT_ROLE_PERMISSIONS, ROLES } from '../config/permissions';
 import { hashPassword } from '../utils/password';
 import { slugify } from '../utils/format';
-import { applySingleOutletSetup, HCF_OUTLET } from './hcfOutlet';
+import { applySingleOutletSetup } from './hcfOutlet';
 
 async function seedRoles() {
   for (const roleName of ROLES) {
@@ -32,28 +32,30 @@ async function seedRoles() {
 }
 
 async function seedOutlets() {
-  // HCF runs from a single outlet (HCF Azadnagar). This also converts/retires outlets left over from the old
-  // three-outlet setup when the seed is re-run against an existing database - see ./hcfOutlet.ts.
-  const { outlet, retired, reassigned, renamed } = await applySingleOutletSetup();
-  console.log(`Seeded outlet "${outlet.name}" (${HCF_OUTLET.address}, ${HCF_OUTLET.openTime}-${HCF_OUTLET.closeTime})`);
-  if (retired) console.log(`Retired ${retired} legacy outlet(s)`);
-  if (renamed) console.log(`Renamed ${renamed} legacy staff login(s) @hfc.example -> @hcf.example`);
-  if (reassigned) console.log(`Re-pointed ${reassigned} staff account(s) at the single outlet`);
-  return [outlet];
+  const { outlets } = await applySingleOutletSetup();
+
+  for (const outlet of outlets) {
+    console.log(
+      `Seeded outlet "${outlet.name}" (${outlet.address}, ${outlet.openingHours?.[0]?.openTime}-${outlet.openingHours?.[0]?.closeTime})`
+    );
+  }
+
+  return outlets;
 }
+
 
 async function seedStaffUsers(outlets: Awaited<ReturnType<typeof seedOutlets>>) {
   const outletIds = outlets.map((o) => o._id);
   const staffDefs = [
-    { name: 'Owner Account', email: 'owner@hcf.example', role: 'OWNER', outletIds },
-    { name: 'Azadnagar Manager', email: 'manager.azadnagar@hcf.example', role: 'MANAGER', outletIds },
-    { name: 'Azadnagar Cashier', email: 'cashier.azadnagar@hcf.example', role: 'CASHIER', outletIds },
-    { name: 'Azadnagar Kitchen', email: 'kitchen.azadnagar@hcf.example', role: 'KITCHEN', outletIds },
-    { name: 'Azadnagar Inventory', email: 'inventory.azadnagar@hcf.example', role: 'INVENTORY', outletIds },
-    { name: 'Azadnagar Delivery Rider', email: 'delivery.azadnagar@hcf.example', role: 'DELIVERY', outletIds },
+    { name: 'Owner Account', email: 'owner@hcfhungerstation.space', role: 'OWNER', outletIds },
+    { name: 'Azadnagar Manager', email: 'manager.azadnagar@hcfhungerstation.space', role: 'MANAGER', outletIds },
+    { name: 'Azadnagar Cashier', email: 'cashier.azadnagar@hcfhungerstation.space', role: 'CASHIER', outletIds },
+    { name: 'Azadnagar Kitchen', email: 'kitchen.azadnagar@hcfhungerstation.space', role: 'KITCHEN', outletIds },
+    { name: 'Azadnagar Inventory', email: 'inventory.azadnagar@hcfhungerstation.space', role: 'INVENTORY', outletIds },
+    { name: 'Azadnagar Delivery Rider', email: 'delivery.azadnagar@hcfhungerstation.space', role: 'DELIVERY', outletIds },
   ];
 
-  const passwordHash = await hashPassword('Passw0rd!123');
+  const passwordHash = await hashPassword('123456');
   for (const def of staffDefs) {
     await User.findOneAndUpdate(
       { email: def.email },
@@ -61,7 +63,7 @@ async function seedStaffUsers(outlets: Awaited<ReturnType<typeof seedOutlets>>) 
       { upsert: true, new: true }
     );
   }
-  console.log(`Seeded ${staffDefs.length} staff users (password: Passw0rd!123)`);
+  console.log(`Seeded ${staffDefs.length} staff users (password: 123456)`);
 }
 
 async function seedCustomers() {
@@ -348,7 +350,7 @@ async function run() {
   await seedCouponsAndLoyalty();
 
   console.log('\nSeed complete.');
-  console.log('Staff login: any *@hcf.example address above, password: Passw0rd!123');
+  console.log('Staff login: any *@hcfhungerstation.space address above, password: 123456');
   console.log('Customer login: enter name + mobile 9876543210 on the Account page (no OTP needed).');
 
   await mongoose.disconnect();
