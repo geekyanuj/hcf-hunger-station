@@ -10,20 +10,77 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test SSH
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@v1.2.2
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        port: ${{ secrets.VPS_PORT }}
+        key: ${{ secrets.VPS_SSH_KEY }}
 
-          timeout: 30s
-          command_timeout: 1m
-          debug: true
+        timeout: 30s
+        command_timeout: 15m
+        debug: true
 
-          script: |
-            echo "SSH connected"
-            whoami
-            hostname
-            echo "Done"
+        script: |
+          set -e
+
+          echo "======================================"
+          echo "Starting deployment"
+          echo "======================================"
+
+          # Go to application directory
+          cd /opt/hcf
+
+          echo "Current directory:"
+          pwd
+
+          echo "======================================"
+          echo "Updating source code"
+          echo "======================================"
+
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          git clean -fd
+
+          echo "Current commit:"
+          git rev-parse --short HEAD
+
+          echo "======================================"
+          echo "Checking Docker"
+          echo "======================================"
+
+          docker --version
+          docker compose version
+
+          echo "======================================"
+          echo "Building and starting containers"
+          echo "======================================"
+
+          docker compose up -d --build --remove-orphans
+
+          echo "======================================"
+          echo "Waiting for services"
+          echo "======================================"
+
+          sleep 10
+
+          echo "======================================"
+          echo "Container status"
+          echo "======================================"
+
+          docker compose ps
+
+          echo "======================================"
+          echo "Running database migrations"
+          echo "======================================"
+
+          # Run database migrations
+          docker exec -it hcf-api-1 node /app/dist/seed/index.js
+
+          echo "Migration step not configured yet"
+
+          echo "======================================"
+          echo "Deployment completed"
+          echo "======================================"
