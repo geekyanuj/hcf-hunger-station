@@ -77,11 +77,10 @@ jobs:
           echo "======================================"
 
           # Run database migrations
-          docker exec -it hcf-api-1 node /app/dist/seed/index.js
+          docker exec hcf-api-1 node /app/dist/seed/index.js
 
           echo "Migration step not configured yet"
 
           echo "======================================"
           echo "Deployment completed"
           echo "======================================"
-          
