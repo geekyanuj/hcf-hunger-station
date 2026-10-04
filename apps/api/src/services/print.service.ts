@@ -171,7 +171,7 @@ export const PrintService = {
       copies: 1,
       isReprint: false,
       ticketFor: () => [
-        { t: 'text', text: outlet.name, align: 'center', bold: true, size: 2 },
+        { t: 'text', text: outlet.name, align: 'center', bold: true, size: 3 },
         { t: 'text', text: 'PRINTER TEST', align: 'center', bold: true },
         { t: 'rule', char: '=' },
         { t: 'text', text: 'T-000', align: 'center', bold: true, size: 3 },
