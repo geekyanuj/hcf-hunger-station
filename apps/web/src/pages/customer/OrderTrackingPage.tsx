@@ -105,7 +105,7 @@ export default function OrderTrackingPage() {
           </p>
         )}
         {!socketConnected && (
-          <p className="mt-1 text-xs text-amber-600">Live updates unavailable — refreshing automatically every few seconds.</p>
+          <p className="mt-1 text-xs text-amber-600">Refreshing automatically every few seconds.</p>
         )}
       </div>
 
