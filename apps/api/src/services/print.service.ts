@@ -1,25 +1,23 @@
 import { Types } from 'mongoose';
 import { env } from '../config/env';
-import { logger } from '../config/logger';
 import { Outlet } from '../models/Outlet';
 import { PrintJob, PrintJobType } from '../models/PrintJob';
 import { StaffAccessTokenPayload } from '../types/auth';
 import { ApiError } from '../utils/ApiError';
 import { OrderService } from './order.service';
-import { charsPerLine, renderEscPos, renderText, TicketOp } from './print/escpos';
+import { charsPerLine, renderText, TicketOp } from './print/escpos';
 import { buildTokenTicket } from './print/tokenTicket';
-import { getTransport } from './print/transport';
 
 export interface PrintResult {
-  /** True only when bytes were delivered to the thermal printer. */
+  /** Always false while output is browser-only. */
   printed: boolean;
-  /** PRINTER = sent to hardware. BROWSER = no printer connected, the web app should print `text` itself. */
+  /** Always BROWSER while direct ESC/POS output is paused. */
   mode: 'PRINTER' | 'BROWSER';
   driver: string;
   copies: number;
   isReprint: boolean;
   jobId: string;
-  /** Plain-text rendering of the slip (also what the browser fallback prints). */
+  /** Plain-text rendering used by the browser print preview. */
   text: string;
   paperWidthMm: number;
   warning?: string;
@@ -36,31 +34,23 @@ function clampCopies(requested?: number): number {
 }
 
 export const PrintService = {
-  /** Non-sensitive summary of the printer setup, for the admin/staff UI. */
+  /** Browser print mode and fixed paper width for the admin/staff UI. */
   status() {
-    const transport = getTransport();
-    const configured = transport.isConfigured();
     return {
-      driver: transport.driver,
-      configured,
-      /** PRINTER once hardware is connected & configured, otherwise BROWSER (print dialog fallback). */
-      mode: transport.driver !== 'DISABLED' && configured ? ('PRINTER' as const) : ('BROWSER' as const),
-      target: transport.target(),
-      paperWidthMm: env.printer.paperWidthMm,
-      charactersPerLine: charsPerLine(env.printer.paperWidthMm),
-      autoCut: env.printer.cut,
-      openDrawer: env.printer.openDrawer,
+      driver: 'DISABLED' as const,
+      configured: false,
+      mode: 'BROWSER' as const,
+      target: 'Browser print preview',
+      paperWidthMm: 58 as const,
+      charactersPerLine: charsPerLine(58),
+      autoCut: false,
+      openDrawer: false,
       defaultCopies: env.printer.copies,
-      hint:
-        transport.driver === 'DISABLED'
-          ? 'No printer connected yet. Set PRINTER_DRIVER (NETWORK or FILE) in the API environment - see docs/PRINTING.md.'
-          : !configured
-            ? `PRINTER_DRIVER=${transport.driver} is selected but its address/device is missing.`
-            : undefined,
+      hint: 'Direct ESC/POS output is paused. Use browser print preview with 58 mm paper.',
     };
   },
 
-  /** Shared delivery path for tokens and test slips: render, send (or fall back), and record a PrintJob. */
+  /** Builds browser-print text and records the preview request; never sends ESC/POS bytes to hardware. */
   async dispatch(params: {
     auth: StaffAccessTokenPayload;
     outletId: Types.ObjectId | string;
@@ -71,60 +61,32 @@ export const PrintService = {
     isReprint: boolean;
     ticketFor: (copyTag?: string) => TicketOp[];
   }): Promise<PrintResult> {
-    const transport = getTransport();
-    const width = charsPerLine(env.printer.paperWidthMm);
-    const hardware = transport.driver !== 'DISABLED' && transport.isConfigured();
+    const width = charsPerLine(58);
     const textOf = (tag?: string) => renderText(params.ticketFor(tag), { width });
 
-    const record = (status: 'PRINTED' | 'BROWSER' | 'FAILED', error?: string) =>
+    const record = () =>
       PrintJob.create({
         outletId: params.outletId,
         orderId: params.orderId,
         tokenNumber: params.tokenNumber,
         requestedBy: params.auth.sub,
         type: params.type,
-        status,
-        driver: transport.driver,
+        status: 'BROWSER',
+        driver: 'BROWSER',
         copies: params.copies,
         isReprint: params.isReprint,
-        error,
       });
 
     const base = {
-      driver: transport.driver,
+      driver: 'BROWSER',
       copies: params.copies,
       isReprint: params.isReprint,
-      paperWidthMm: env.printer.paperWidthMm,
+      paperWidthMm: 58,
       text: textOf(params.isReprint ? 'REPRINT' : undefined),
     };
 
-    if (!hardware) {
-      const job = await record('BROWSER');
-      return {
-        ...base,
-        printed: false,
-        mode: 'BROWSER',
-        jobId: job.id,
-        warning: transport.driver === 'DISABLED' ? undefined : `PRINTER_DRIVER=${transport.driver} is not fully configured; using browser print.`,
-      };
-    }
-
-    try {
-      for (let copy = 1; copy <= params.copies; copy += 1) {
-        const tags = [params.isReprint ? 'REPRINT' : '', params.copies > 1 ? `COPY ${copy}/${params.copies}` : ''].filter(Boolean);
-        const ops = params.ticketFor(tags.join(' - ') || undefined);
-        const data = renderEscPos(ops, { width, cut: env.printer.cut, openDrawer: env.printer.openDrawer && copy === 1 });
-        await transport.send(data, renderText(ops, { width }));
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Printing failed';
-      await record('FAILED', message);
-      logger.warn(`[print] ${params.type} failed via ${transport.driver}: ${message}`);
-      throw new ApiError(502, message);
-    }
-
-    const job = await record('PRINTED');
-    return { ...base, printed: true, mode: 'PRINTER', jobId: job.id };
+    const job = await record();
+    return { ...base, printed: false, mode: 'BROWSER', jobId: job.id };
   },
 
   async printToken(orderId: string, auth: StaffAccessTokenPayload, opts: { copies?: number } = {}): Promise<PrintResult> {
@@ -148,17 +110,17 @@ export const PrintService = {
     });
   },
 
-  /** Renders the token without printing or logging anything (used for the on-screen preview). */
+  /** Renders the token without printing or logging anything. */
   async previewToken(orderId: string, auth: StaffAccessTokenPayload) {
     const order = await OrderService.getById(orderId);
     assertOutletAccess(auth, order.outletId.toString());
     const outlet = await Outlet.findById(order.outletId);
     if (!outlet) throw ApiError.notFound('Outlet not found for this order');
     const ops = buildTokenTicket(order, outlet, { footer: env.printer.footer });
-    return { text: renderText(ops, { width: charsPerLine(env.printer.paperWidthMm) }), paperWidthMm: env.printer.paperWidthMm };
+    return { text: renderText(ops, { width: charsPerLine(58) }), paperWidthMm: 58 };
   },
 
-  /** Prints a short alignment/size test slip so the printer can be verified right after connecting it. */
+  /** Creates a short test slip for browser print preview. */
   async testPrint(auth: StaffAccessTokenPayload, outletId: string): Promise<PrintResult> {
     assertOutletAccess(auth, outletId);
     const outlet = await Outlet.findById(outletId);
@@ -181,7 +143,7 @@ export const PrintService = {
         { t: 'cols', left: 'Chars/line', right: String(status.charactersPerLine) },
         { t: 'cols', left: 'Time', right: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) },
         { t: 'rule' },
-        { t: 'text', text: 'If you can read this clearly, the printer is connected correctly.', align: 'center' },
+        { t: 'text', text: '58 mm browser print preview test', align: 'center' },
       ],
     });
   },

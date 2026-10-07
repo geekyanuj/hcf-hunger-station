@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { Order, OrderAction } from '@/types/domain';
-import { printCustomerReceipt, printKitchenTicket } from '@/utils/printOrder';
-import { printTokenForOrder } from '@/utils/printToken';
+import { printCustomerBill, printKitchenToken } from '@/utils/printOrder';
 import { cn } from '@/utils/cn';
 
 /**
@@ -99,12 +98,15 @@ export function OrderActions({
         setAssignOpen(true);
         break;
       case 'PRINT':
-        if (a.key === 'PRINT_KITCHEN') printKitchenTicket(order);
-        else if (a.key === 'PRINT_TOKEN')
-          printTokenForOrder(order._id, order.tokenNumber)
-            .then((o) => push(o.message, o.via === 'BROWSER_FALLBACK' ? 'info' : 'success'))
-            .catch((e) => push(extractErrorMessage(e), 'error'));
-        else printCustomerReceipt(order).catch((e) => push(extractErrorMessage(e), 'error'));
+        if (a.key === 'PRINT_CUSTOMER') {
+          printCustomerBill(order).catch((error) => push(extractErrorMessage(error), 'error'));
+        } else {
+          try {
+            printKitchenToken(order);
+          } catch (error) {
+            push(extractErrorMessage(error), 'error');
+          }
+        }
         break;
       case 'VIEW':
         onView?.(order);

@@ -6,7 +6,7 @@ export const StaffAuthApi = {
 
 // ---------- Orders / POS / Payments ----------
 export const StaffOrderApi = {
-  create: async (payload: Record<string, unknown>) => (await api.post('/orders', payload)).data.data,
+  create: async (payload: Record<string, unknown>): Promise<import('@/types/domain').Order> => (await api.post('/orders', payload)).data.data,
   priceCart: async (payload: Record<string, unknown>) => (await api.post('/orders/price', payload)).data.data,
   list: async (outletId: string, params: Record<string, unknown> = {}) =>
     (await api.get('/orders', { params: { outletId, ...params } })).data,
@@ -116,11 +116,11 @@ export const DashboardApi = {
     (await api.post('/dashboard/reset', { password }, { params: { outletId } })).data.data,
 };
 
-// ---------- Thermal token printing ----------
+// ---------- Browser token printing ----------
 export interface PrintStatus {
   driver: 'DISABLED' | 'NETWORK' | 'FILE' | 'CONSOLE';
   configured: boolean;
-  /** PRINTER = the API prints straight to the thermal printer; BROWSER = no printer connected, use the print dialog. */
+  /** Direct printing is paused; previews always use the browser. */
   mode: 'PRINTER' | 'BROWSER';
   target: string;
   paperWidthMm: 58 | 80;

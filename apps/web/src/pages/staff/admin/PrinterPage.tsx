@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, MonitorSmartphone, Printer, PlugZap, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, MonitorSmartphone, Printer, AlertTriangle } from 'lucide-react';
 import { PrintApi, PrintJob } from '@/services/staffApi';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 import { useSessionStore } from '@/stores/session.store';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 
 const DRIVER_LABEL: Record<string, string> = {
-  DISABLED: 'Not connected (browser print)',
+  DISABLED: 'Browser print only',
   NETWORK: 'Network printer (Ethernet / Wi-Fi)',
   FILE: 'USB / shared printer path',
   CONSOLE: 'Development (API log)',
@@ -38,12 +38,7 @@ export default function PrinterPage() {
 
   const test = useMutation({
     mutationFn: () => PrintApi.test(activeOutletId as string),
-    onSuccess: (result) => {
-      if (result.printed) push('Test slip sent to the printer - check it printed clearly', 'success');
-      else {
-        push('No printer connected - opening browser print', 'info');
-        printPlainText('Printer test', result.text, result.paperWidthMm);
-      }
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['print-jobs'] });
     },
     onError: (err) => {
@@ -52,13 +47,21 @@ export default function PrinterPage() {
     },
   });
 
-  const live = status?.mode === 'PRINTER';
+  function previewTestSlip() {
+    try {
+      printPlainText('Browser print test', `BROWSER PRINT TEST\n58 mm roll\n${new Date().toLocaleString('en-IN')}`);
+      push('Test slip opened in browser print preview', 'success');
+    } catch (error) {
+      push(extractErrorMessage(error), 'error');
+    }
+    test.mutate();
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div>
-        <h1 className="font-display text-2xl font-bold text-ink-900">Token Printer</h1>
-        <p className="text-sm text-neutral-500">Thermal printer connection for order tokens.</p>
+        <h1 className="font-display text-2xl font-bold text-ink-900">Browser Printing</h1>
+        <p className="text-sm text-neutral-500">Kitchen tokens and customer bills open in the browser print preview for 58 mm thermal paper.</p>
       </div>
 
       <Card>
@@ -67,11 +70,11 @@ export default function PrinterPage() {
           {status && (
             <>
               <div className="flex items-start gap-3">
-                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${live ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-700'}`}>
-                  {live ? <PlugZap className="h-5 w-5" /> : <MonitorSmartphone className="h-5 w-5" />}
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+                  <MonitorSmartphone className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
-                  <p className="font-semibold text-ink-900">{live ? 'Printer connected' : 'Using browser print'}</p>
+                  <p className="font-semibold text-ink-900">Browser print preview only</p>
                   <p className="text-sm text-neutral-500">{DRIVER_LABEL[status.driver] ?? status.driver}</p>
                   {status.hint && (
                     <p className="mt-2 flex gap-1.5 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
@@ -88,9 +91,9 @@ export default function PrinterPage() {
                 <Info label="Copies" value={String(status.defaultCopies)} />
               </dl>
 
-              <Button onClick={() => test.mutate()} disabled={!activeOutletId || test.isPending}>
+              <Button onClick={previewTestSlip} disabled={!activeOutletId || test.isPending}>
                 <Printer className="mr-1.5 h-4 w-4" />
-                {test.isPending ? 'Printing…' : 'Print test slip'}
+                {test.isPending ? 'Preparing…' : 'Preview test slip'}
               </Button>
             </>
           )}

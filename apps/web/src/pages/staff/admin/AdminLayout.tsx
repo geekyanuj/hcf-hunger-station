@@ -12,7 +12,7 @@ const TABS = [
   { to: '/admin/staff', label: 'Staff', permission: 'users.manage' },
   { to: '/admin/outlet-settings', label: 'Outlet Settings', permission: 'outlets.manage' },
   { to: '/admin/tables', label: 'Tables', permission: 'tables.manage' },
-  { to: '/admin/printer', label: 'Printer', permission: 'tokens.print' },
+  { to: '/admin/printer', label: 'Browser Printing', permission: 'tokens.print' },
 ];
 
 export default function AdminLayout() {

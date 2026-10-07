@@ -94,11 +94,11 @@ describe('token printing', () => {
     expect(res.status).toBe(403);
   });
 
-  it('with no printer connected, answers in BROWSER mode with the rendered slip and logs the job', async () => {
+  it('returns browser print content at 58 mm and logs the preview request', async () => {
     const s = await seed();
     const order = await placeOrder(s);
     const status = await request(app).get('/api/v1/print/status').set('Authorization', `Bearer ${s.cashier.token}`);
-    expect(status.body.data).toMatchObject({ driver: 'DISABLED', mode: 'BROWSER', configured: false, paperWidthMm: 80 });
+    expect(status.body.data).toMatchObject({ driver: 'DISABLED', mode: 'BROWSER', configured: false, paperWidthMm: 58 });
 
     const first = await request(app).post(`/api/v1/print/orders/${order._id}/token`).set('Authorization', `Bearer ${s.cashier.token}`).send({});
     expect(first.body.data).toMatchObject({ printed: false, mode: 'BROWSER', isReprint: false });
@@ -112,7 +112,21 @@ describe('token printing', () => {
     expect(await PrintJob.countDocuments({ orderId: order._id, status: 'BROWSER' })).toBe(2);
   });
 
-  it('sends ESC/POS bytes to a network printer (one job per copy, with a cut)', async () => {
+  it('ignores legacy network settings and always logs browser output at 58 mm', async () => {
+    const s = await seed();
+    const order = await placeOrder(s);
+    Object.assign(env.printer, { driver: 'NETWORK', host: '127.0.0.1', port: 1 });
+
+    const result = await request(app)
+      .post(`/api/v1/print/orders/${order._id}/token`)
+      .set('Authorization', `Bearer ${s.cashier.token}`)
+      .send({ copies: 2 });
+    expect(result.status, JSON.stringify(result.body)).toBe(200);
+    expect(result.body.data).toMatchObject({ printed: false, mode: 'BROWSER', driver: 'BROWSER', copies: 2, paperWidthMm: 58 });
+    expect(await PrintJob.countDocuments({ orderId: order._id, status: 'BROWSER' })).toBe(1);
+  });
+
+  it('does not send ESC/POS bytes to a network printer', async () => {
     const s = await seed();
     const order = await placeOrder(s);
     const jobs: Buffer[] = [];
@@ -126,21 +140,15 @@ describe('token printing', () => {
 
     const res = await request(app).post(`/api/v1/print/orders/${order._id}/token`).set('Authorization', `Bearer ${s.manager.token}`).send({ copies: 2 });
     expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body.data).toMatchObject({ printed: true, mode: 'PRINTER', driver: 'NETWORK', copies: 2 });
+    expect(res.body.data).toMatchObject({ printed: false, mode: 'BROWSER', driver: 'BROWSER', copies: 2, paperWidthMm: 58 });
     await new Promise((r) => setTimeout(r, 100));
     server.close();
 
-    expect(jobs).toHaveLength(2);
-    for (const job of jobs) {
-      expect([...job.subarray(0, 2)]).toEqual([0x1b, 0x40]); // ESC @
-      expect(job.toString('latin1')).toContain(order.tokenNumber);
-      expect([...job.subarray(job.length - 4)]).toEqual([0x1d, 0x56, 0x42, 0x00]); // cut
-    }
-    expect(jobs[1].toString('latin1')).toContain('COPY 2/2');
-    expect(await PrintJob.countDocuments({ orderId: order._id, status: 'PRINTED' })).toBe(1);
+    expect(jobs).toHaveLength(0);
+    expect(await PrintJob.countDocuments({ orderId: order._id, status: 'BROWSER' })).toBe(1);
   });
 
-  it('reports an unreachable printer as 502, records the failure, and never claims success', async () => {
+  it('does not try an unreachable network printer', async () => {
     const s = await seed();
     const order = await placeOrder(s);
     const probe = net.createServer();
@@ -150,28 +158,27 @@ describe('token printing', () => {
     Object.assign(env.printer, { driver: 'NETWORK', host: '127.0.0.1', port, timeoutMs: 1000 });
 
     const res = await request(app).post(`/api/v1/print/orders/${order._id}/token`).set('Authorization', `Bearer ${s.cashier.token}`).send({});
-    expect(res.status).toBe(502);
-    expect(res.body.message).toMatch(/refused the connection/);
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ printed: false, mode: 'BROWSER', driver: 'BROWSER', paperWidthMm: 58 });
     const job = await PrintJob.findOne({ orderId: order._id });
-    expect(job).toMatchObject({ status: 'FAILED', driver: 'NETWORK' });
+    expect(job).toMatchObject({ status: 'BROWSER', driver: 'BROWSER' });
   });
 
-  it('falls back to browser print when a driver is chosen but not configured', async () => {
+  it('uses browser print when legacy printer settings are incomplete', async () => {
     const s = await seed();
     const order = await placeOrder(s);
     Object.assign(env.printer, { driver: 'NETWORK', host: '' });
     const res = await request(app).post(`/api/v1/print/orders/${order._id}/token`).set('Authorization', `Bearer ${s.cashier.token}`).send({});
-    expect(res.body.data).toMatchObject({ printed: false, mode: 'BROWSER' });
-    expect(res.body.data.warning).toMatch(/not fully configured/);
+    expect(res.body.data).toMatchObject({ printed: false, mode: 'BROWSER', driver: 'BROWSER', paperWidthMm: 58 });
   });
 
-  it('rejects an invalid copy count and exposes Print Token in the order actions', async () => {
+  it('rejects an invalid copy count and exposes the kitchen token action', async () => {
     const s = await seed();
     const order = await placeOrder(s);
     const bad = await request(app).post(`/api/v1/print/orders/${order._id}/token`).set('Authorization', `Bearer ${s.cashier.token}`).send({ copies: 50 });
     expect(bad.status).toBe(400);
     const current = await request(app).get(`/api/v1/orders/${order._id}`).set('Authorization', `Bearer ${s.cashier.token}`);
-    expect(current.body.data.availableActions.map((a: { key: string }) => a.key)).toContain('PRINT_TOKEN');
+    expect(current.body.data.availableActions.map((a: { key: string }) => a.key)).toContain('PRINT_KITCHEN');
   });
 
   it('test print works for managers and is recorded', async () => {

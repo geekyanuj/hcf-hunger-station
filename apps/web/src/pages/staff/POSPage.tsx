@@ -11,19 +11,10 @@ import { useToast } from '@/components/ui/Toast';
 import { extractErrorMessage } from '@/services/apiClient';
 import { formatCurrency } from '@/utils/cn';
 import { cn } from '@/utils/cn';
-import { CartLine, OrderType } from '@/types/domain';
+import { CartLine, Order, OrderType } from '@/types/domain';
 import { ORDER_TYPE_LABEL } from '@/utils/orderStatus';
 import { useSessionStore } from '@/stores/session.store';
-import { printTokenForOrder } from '@/utils/printToken';
-
-const AUTO_PRINT_KEY = 'hcf-pos-auto-print-token';
-function readAutoPrint(): boolean {
-  try {
-    return localStorage.getItem(AUTO_PRINT_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
+import { printKitchenToken } from '@/utils/printOrder';
 
 const ORDER_TYPES: { value: OrderType; label: string }[] = (['POS', 'DINE_IN', 'TAKEAWAY', 'DELIVERY'] as OrderType[]).map((value) => ({
   value,
@@ -43,34 +34,25 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [tableId, setTableId] = useState('');
   const [address, setAddress] = useState({ line1: '', city: '', pincode: '' });
+  const [kitchenComment, setKitchenComment] = useState('');
   const [discountPercent, setDiscountPercent] = useState(0);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [receiptOrderId, setReceiptOrderId] = useState<string | null>(null);
 
-  // Token printing (thermal printer / browser fallback): OWNER, MANAGER and CASHIER only.
-  const canPrintToken = useSessionStore((st) => st.hasPermission('tokens.print'));
-  const [lastOrder, setLastOrder] = useState<{ id: string; token: string; number: string } | null>(null);
-  const [autoPrint, setAutoPrint] = useState<boolean>(readAutoPrint);
+  // Kitchen-token printing is browser-only: OWNER, MANAGER and CASHIER only.
+  const canPrintKitchenToken = useSessionStore((st) => st.hasPermission('tokens.print'));
+  const [lastOrder, setLastOrder] = useState<Order | null>(null);
   const [printing, setPrinting] = useState(false);
 
-  async function printToken(target: { id: string; token: string }) {
+  function printKitchenTokenForOrder(target: Order) {
     setPrinting(true);
     try {
-      const outcome = await printTokenForOrder(target.id, target.token);
-      push(outcome.message, outcome.via === 'BROWSER_FALLBACK' ? 'info' : 'success');
+      printKitchenToken(target);
+      push(`Kitchen token ${target.tokenNumber} opened in browser print preview`, 'success');
     } catch (err) {
       push(extractErrorMessage(err), 'error');
     } finally {
       setPrinting(false);
-    }
-  }
-
-  function toggleAutoPrint(on: boolean) {
-    setAutoPrint(on);
-    try {
-      localStorage.setItem(AUTO_PRINT_KEY, on ? '1' : '0');
-    } catch {
-      /* private mode etc. - the toggle still works for this session */
     }
   }
 
@@ -137,6 +119,7 @@ export default function POSPage() {
         outletId: activeOutletId,
         orderType,
         lines: cart.map((l) => ({ menuItemId: l.menuItemId, quantity: l.quantity, selectedOptionIds: l.selectedOptionIds })),
+        customerNotes: kitchenComment.trim() || undefined,
         manualDiscount: discountPercent > 0 ? { discountType: 'PERCENT', value: discountPercent, reason: 'POS discount' } : undefined,
         tableId: orderType === 'DINE_IN' ? tableId : undefined,
         deliveryAddress: orderType === 'DELIVERY' ? { ...address, state: 'Jharkhand' } : undefined,
@@ -145,8 +128,7 @@ export default function POSPage() {
     onSuccess: (order, payAfterDining) => {
       queryClient.invalidateQueries({ queryKey: ['kds-board'] });
       queryClient.invalidateQueries({ queryKey: ['current-orders'] });
-      setLastOrder({ id: order._id, token: order.tokenNumber, number: order.orderNumber });
-      if (canPrintToken && autoPrint) void printToken({ id: order._id, token: order.tokenNumber });
+      setLastOrder(order);
       if (payAfterDining) {
         push(`Order ${order.orderNumber} placed for table ${order.tableNumber} — payment after dining`, 'success');
         resetCart();
@@ -161,6 +143,7 @@ export default function POSPage() {
 
   function resetCart() {
     setCart([]);
+    setKitchenComment('');
     setDiscountPercent(0);
     setTableId('');
     setAddress({ line1: '', city: '', pincode: '' });
@@ -278,18 +261,23 @@ export default function POSPage() {
               </div>
             ))}
           </div>
+          {cart.length > 0 && (
+            <textarea
+              value={kitchenComment}
+              onChange={(event) => setKitchenComment(event.target.value)}
+              maxLength={500}
+              placeholder="Kitchen comment (optional)"
+              className="mt-3 h-16 w-full resize-none rounded-lg border border-neutral-200 p-2 text-sm outline-none focus:border-brand-500"
+            />
+          )}
         </div>
 
         <div className="space-y-2 border-t border-neutral-200 p-3">
-          {canPrintToken && (
-            <div className="flex items-center justify-between gap-2 rounded-lg bg-neutral-50 px-3 py-2">
-              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-neutral-600">
-                <input type="checkbox" checked={autoPrint} onChange={(e) => toggleAutoPrint(e.target.checked)} className="h-3.5 w-3.5 accent-brand-500" />
-                Auto-print token
-              </label>
-              <Button size="sm" variant="outline" disabled={!lastOrder || printing} onClick={() => lastOrder && printToken(lastOrder)}>
+          {canPrintKitchenToken && (
+            <div className="rounded-lg bg-neutral-50 px-3 py-2">
+              <Button size="sm" variant="outline" disabled={!lastOrder || printing} onClick={() => lastOrder && printKitchenTokenForOrder(lastOrder)}>
                 <Printer className="mr-1.5 h-3.5 w-3.5" />
-                {printing ? 'Printing…' : lastOrder ? `Print token ${lastOrder.token}` : 'Print token'}
+                {printing ? 'Preparing preview…' : lastOrder ? `Print kitchen token ${lastOrder.tokenNumber}` : 'Print kitchen token'}
               </Button>
             </div>
           )}
@@ -387,14 +375,9 @@ function PaymentModal({ open, orderId, total, onClose }: { open: boolean; orderI
 
         <Input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value) || 0)} placeholder="Amount for this payment (supports split payments)" />
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="mr-1.5 h-4 w-4" /> Print
-          </Button>
-          <Button disabled={remaining <= 0 || pay.isPending || amount <= 0} onClick={() => pay.mutate()}>
-            {pay.isPending ? 'Processing…' : `Pay ${formatCurrency(amount)}`}
-          </Button>
-        </div>
+        <Button className="w-full" disabled={remaining <= 0 || pay.isPending || amount <= 0} onClick={() => pay.mutate()}>
+          {pay.isPending ? 'Processing…' : `Pay ${formatCurrency(amount)}`}
+        </Button>
 
         {remaining <= 0 && (
           <Button variant="secondary" className="w-full" onClick={onClose}>

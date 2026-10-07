@@ -65,7 +65,7 @@ describe('order status API: full lifecycles, enforced by the backend', () => {
       .send({ outletId: outlet.id, orderType: 'TAKEAWAY', lines: [{ menuItemId: item.id, quantity: 1, selectedOptionIds: [] }] });
     expect(created.status).toBe(201);
     expect(created.body.data.orderStatus).toBe('PENDING');
-    expect(created.body.data.availableActions.map((a: { key: string }) => a.key)).toEqual(['CONFIRM', 'CANCEL', 'PRINT_CUSTOMER', 'PRINT_KITCHEN', 'PRINT_TOKEN']);
+    expect(created.body.data.availableActions.map((a: { key: string }) => a.key)).toEqual(['CONFIRM', 'CANCEL', 'PRINT_KITCHEN']);
     const id = created.body.data._id;
 
     for (const status of ['CONFIRMED', 'PREPARING', 'READY']) {
@@ -75,7 +75,7 @@ describe('order status API: full lifecycles, enforced by the backend', () => {
     }
     // READY (Take): Complete is offered, Out-for-delivery is not
     const readyActions = (await patch(id, cashierToken, { status: 'COMPLETED' })).body.data.availableActions.map((a: { key: string }) => a.key);
-    expect(readyActions).toEqual(['VIEW', 'PRINT_CUSTOMER', 'PRINT_TOKEN']);
+    expect(readyActions).toEqual(['VIEW', 'PRINT_CUSTOMER']);
 
     const order = await Order.findById(id);
     expect(order!.orderStatus).toBe('COMPLETED');
@@ -416,7 +416,7 @@ describe('staff dashboards', () => {
     expect(res.body.data.counts).toMatchObject({ PENDING: 1, CONFIRMED: 1, CANCELLED: 1, COMPLETED: 0 });
     const byId = Object.fromEntries(res.body.data.orders.map((o: { _id: string }) => [o._id, o]));
     expect(byId[a].availableActions.map((x: { key: string }) => x.key)).toContain('CONFIRM');
-    expect(byId[c].availableActions.map((x: { key: string }) => x.key)).toEqual(['VIEW', 'PRINT_CUSTOMER', 'PRINT_TOKEN']);
+    expect(byId[c].availableActions.map((x: { key: string }) => x.key)).toEqual(['VIEW']);
 
     const withoutClosed = await request(app).get(`/api/v1/orders/current?outletId=${outlet.id}`).set('Authorization', `Bearer ${mgr}`);
     expect(withoutClosed.body.data.orders.map((o: { _id: string }) => o._id)).not.toContain(c);
@@ -425,6 +425,6 @@ describe('staff dashboards', () => {
     const board = await request(app).get(`/api/v1/kitchen/board?outletId=${outlet.id}`).set('Authorization', `Bearer ${kit}`);
     expect(board.status).toBe(200);
     const pending = board.body.data.new.find((o: { _id: string }) => o._id === a);
-    expect(pending.availableActions.map((x: { key: string }) => x.key)).toEqual(['CONFIRM', 'PRINT_CUSTOMER', 'PRINT_KITCHEN']);
+    expect(pending.availableActions.map((x: { key: string }) => x.key)).toEqual(['CONFIRM', 'PRINT_KITCHEN']);
   });
 });

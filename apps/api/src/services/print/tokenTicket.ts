@@ -31,10 +31,8 @@ export interface TokenTicketOptions {
 }
 
 /**
- * Lays out the customer TOKEN slip: outlet, a large token number, order
- * details and the items. Prices are deliberately left off (that is the
- * receipt's job) - the token is what the customer collects their food with and
- * what the kitchen can work from.
+ * Lays out a kitchen token with the order details, item quantities and prices,
+ * and optional item/order comments.
  */
 export function buildTokenTicket(order: IOrder, outlet: Pick<IOutlet, 'name' | 'address' | 'phone'>, opts: TokenTicketOptions = {}): TicketOp[] {
   const ops: TicketOp[] = [
@@ -42,7 +40,7 @@ export function buildTokenTicket(order: IOrder, outlet: Pick<IOutlet, 'name' | '
     { t: 'text', text: outlet.address, align: 'center' },
     { t: 'text', text: outlet.phone, align: 'center' },
     { t: 'rule', char: '=' },
-    { t: 'text', text: 'TOKEN', align: 'center', bold: true },
+    { t: 'text', text: 'KITCHEN TOKEN', align: 'center', bold: true },
     { t: 'text', text: order.tokenNumber, align: 'center', bold: true, size: 3 },
   ];
 
@@ -58,9 +56,12 @@ export function buildTokenTicket(order: IOrder, outlet: Pick<IOutlet, 'name' | '
   if (order.scheduledAt) ops.push({ t: 'cols', left: 'Scheduled', right: formatDateTime(order.scheduledAt) });
   ops.push({ t: 'cols', left: 'Payment', right: order.paymentStatus === 'PAID' ? 'PAID' : `${order.paymentStatus}${order.paymentMethod ? ` (${order.paymentMethod.replace(/_/g, ' ')})` : ''}` });
 
-  ops.push({ t: 'rule' }, { t: 'cols', left: 'ITEM', right: 'QTY', bold: true }, { t: 'rule' });
+  ops.push({ t: 'rule' }, { t: 'cols', left: 'ITEM / QTY / RATE', right: 'AMOUNT', bold: true }, { t: 'rule' });
   for (const item of order.items) {
-    ops.push({ t: 'cols', left: item.name, right: String(item.quantity), bold: true });
+    const modifierRate = item.selectedModifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0);
+    const rate = item.unitPrice + modifierRate;
+    ops.push({ t: 'text', text: item.name, bold: true });
+    ops.push({ t: 'cols', left: `${item.quantity} x ${rate.toFixed(2)}`, right: item.lineTotal.toFixed(2) });
     if (item.selectedModifiers.length > 0) {
       ops.push({ t: 'text', text: `  + ${item.selectedModifiers.map((m) => m.optionName).join(', ')}` });
     }
@@ -68,9 +69,13 @@ export function buildTokenTicket(order: IOrder, outlet: Pick<IOutlet, 'name' | '
   }
 
   if (order.customerNotes) {
-    ops.push({ t: 'rule' }, { t: 'text', text: 'Notes:', bold: true }, { t: 'text', text: order.customerNotes });
+    ops.push({ t: 'rule' }, { t: 'text', text: 'Comment:', bold: true }, { t: 'text', text: order.customerNotes });
   }
 
-  ops.push({ t: 'rule', char: '=' }, { t: 'text', text: opts.footer ?? 'Thank you!', align: 'center' });
+  ops.push(
+    { t: 'rule', char: '=' },
+    { t: 'cols', left: 'TOTAL', right: order.total.toFixed(2), bold: true },
+    { t: 'text', text: opts.footer ?? 'Thank you!', align: 'center' }
+  );
   return ops;
 }

@@ -51,15 +51,10 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
       PAYMENT_PROVIDER: MOCK
       PAYMENT_WEBHOOK_SECRET: ${PAYMENT_WEBHOOK_SECRET:-change_me_webhook_secret}
-      # Thermal token printer - set these in the root .env (see docs/PRINTING.md). DISABLED = browser print.
+      # Direct ESC/POS output is paused; browser layouts target a 58 mm roll.
       PRINTER_DRIVER: ${PRINTER_DRIVER:-DISABLED}
-      PRINTER_HOST: ${PRINTER_HOST:-}
-      PRINTER_PORT: ${PRINTER_PORT:-9100}
-      PRINTER_DEVICE_PATH: ${PRINTER_DEVICE_PATH:-}
-      PRINTER_PAPER_WIDTH: ${PRINTER_PAPER_WIDTH:-80}
-      PRINTER_TIMEOUT_MS: ${PRINTER_TIMEOUT_MS:-5000}
-      PRINTER_CUT: ${PRINTER_CUT:-true}
-      PRINTER_OPEN_DRAWER: ${PRINTER_OPEN_DRAWER:-false}
+      PRINTER_COPIES: ${PRINTER_COPIES:-1}
+      PRINTER_FOOTER: "${PRINTER_FOOTER:-Thank you! Visit again}"
       PRINTER_COPIES: ${PRINTER_COPIES:-1}
       PRINTER_FOOTER: ${PRINTER_FOOTER:-Thank you! Visit again}
     depends_on:

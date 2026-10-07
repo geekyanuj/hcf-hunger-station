@@ -42,23 +42,13 @@ export const env = {
     webhookSecret: process.env.PAYMENT_WEBHOOK_SECRET ?? 'dev_webhook_secret',
   },
 
-  /**
-   * Thermal token printer (ESC/POS). Nothing here is secret and nothing is sent to the browser except the
-   * non-sensitive summary from GET /print/status. Until PRINTER_DRIVER is set the API runs in BROWSER mode:
-   * tokens are rendered server-side and the web app prints them through the browser instead.
-   *
-   *   PRINTER_DRIVER = DISABLED (default) | NETWORK | FILE | CONSOLE
-   *     NETWORK  raw TCP to an Ethernet/Wi-Fi printer  -> PRINTER_HOST (+ PRINTER_PORT, default 9100)
-   *     FILE     write raw bytes to a device/queue path -> PRINTER_DEVICE_PATH (e.g. /dev/usb/lp0, or a shared-printer path)
-   *     CONSOLE  development only: prints the token text to the API log
-   */
+  /** Browser print settings. Direct ESC/POS output is paused; thermal layouts use a 58 mm roll. */
   printer: {
     driver: (process.env.PRINTER_DRIVER ?? 'DISABLED').toUpperCase(),
     host: process.env.PRINTER_HOST ?? '',
     port: parseInt(process.env.PRINTER_PORT ?? '9100', 10),
     devicePath: process.env.PRINTER_DEVICE_PATH ?? '',
-    /** 80 (mm) = 48 characters per line, 58 (mm) = 32 characters per line. */
-    paperWidthMm: process.env.PRINTER_PAPER_WIDTH === '58' ? 58 : 80,
+    paperWidthMm: 58 as const,
     timeoutMs: parseInt(process.env.PRINTER_TIMEOUT_MS ?? '5000', 10),
     cut: (process.env.PRINTER_CUT ?? 'true') !== 'false',
     openDrawer: (process.env.PRINTER_OPEN_DRAWER ?? 'false') === 'true',

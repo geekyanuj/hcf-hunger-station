@@ -13,11 +13,18 @@ function fakeOrder(overrides: Record<string, unknown> = {}): IOrder {
     tableNumber: '7',
     paymentStatus: 'PENDING',
     paymentMethod: 'PAY_AFTER_DINE_IN',
+    total: 280,
     createdAt: new Date('2026-09-30T06:30:00.000Z'),
     customerNotes: 'Less spicy please',
     items: [
-      { name: 'Classic Chicken Burger', quantity: 2, selectedModifiers: [{ optionName: 'Large' }, { optionName: 'Extra Cheese' }] },
-      { name: 'French Fries', quantity: 1, selectedModifiers: [], notes: 'No salt' },
+      {
+        name: 'Classic Chicken Burger',
+        unitPrice: 100,
+        quantity: 2,
+        lineTotal: 230,
+        selectedModifiers: [{ optionName: 'Large', priceDelta: 5 }, { optionName: 'Extra Cheese', priceDelta: 10 }],
+      },
+      { name: 'French Fries', unitPrice: 50, quantity: 1, lineTotal: 50, selectedModifiers: [], notes: 'No salt' },
     ],
     ...overrides,
   } as unknown as IOrder;
@@ -92,9 +99,9 @@ describe('charsPerLine', () => {
 });
 
 describe('buildTokenTicket', () => {
-  const text = (order: IOrder, opts = {}) => renderText(buildTokenTicket(order, outlet, opts), { width: 48 });
+  const text = (order: IOrder, opts = {}) => renderText(buildTokenTicket(order, outlet, opts), { width: 32 });
 
-  it('prints outlet, token, order details, items, modifiers and notes - and no prices', () => {
+  it('prints outlet, token, order details, items, quantities, prices, modifiers and comments', () => {
     const out = text(fakeOrder());
     expect(out).toContain('HCF Azadnagar');
     expect(out).toContain('T-104');
@@ -105,7 +112,9 @@ describe('buildTokenTicket', () => {
     expect(out).toContain('+ Large, Extra Cheese');
     expect(out).toContain('Note: No salt');
     expect(out).toContain('Less spicy please');
-    expect(out).not.toMatch(/Rs|\$|Total|Subtotal/);
+    expect(out).toContain('2 x 115.00');
+    expect(out).toContain('230.00');
+    expect(out).toContain('280.00');
   });
   it('shows IST time, not UTC', () => {
     expect(text(fakeOrder())).toMatch(/12:00\s?pm/i); // 06:30Z = 12:00 IST

@@ -254,19 +254,19 @@ describe('role-based forward permissions', () => {
 describe('available actions (§15) — what the dashboard may render', () => {
   const keys = (o: OrderFacts, a: OrderActor) => getAvailableActions(o, a).map((x) => x.key);
 
-  it('PENDING: Confirm, Cancel, Print Customer, Print Kitchen, Print Token', () => {
-    expect(keys(order('PENDING', 'TAKEAWAY'), manager)).toEqual(['CONFIRM', 'CANCEL', 'PRINT_CUSTOMER', 'PRINT_KITCHEN', 'PRINT_TOKEN']);
+  it('PENDING: kitchen token is available, but the customer bill waits until READY', () => {
+    expect(keys(order('PENDING', 'TAKEAWAY'), manager)).toEqual(['CONFIRM', 'CANCEL', 'PRINT_KITCHEN']);
   });
   it('CONFIRMED: Start Preparing, Cancel, prints', () => {
-    expect(keys(order('CONFIRMED', 'TAKEAWAY'), manager)).toEqual(['START_PREPARING', 'CANCEL', 'PRINT_CUSTOMER', 'PRINT_KITCHEN', 'PRINT_TOKEN']);
+    expect(keys(order('CONFIRMED', 'TAKEAWAY'), manager)).toEqual(['START_PREPARING', 'CANCEL', 'PRINT_KITCHEN']);
   });
   it('PREPARING: Mark Ready (+ Cancel only for roles with permission)', () => {
-    expect(keys(order('PREPARING', 'TAKEAWAY'), manager)).toEqual(['MARK_READY', 'CANCEL', 'PRINT_CUSTOMER', 'PRINT_KITCHEN', 'PRINT_TOKEN']);
-    expect(keys(order('PREPARING', 'TAKEAWAY'), kitchen)).toEqual(['MARK_READY', 'PRINT_CUSTOMER', 'PRINT_KITCHEN']);
+    expect(keys(order('PREPARING', 'TAKEAWAY'), manager)).toEqual(['MARK_READY', 'CANCEL', 'PRINT_KITCHEN']);
+    expect(keys(order('PREPARING', 'TAKEAWAY'), kitchen)).toEqual(['MARK_READY', 'PRINT_KITCHEN']);
   });
   it('READY (Parcel): Assign Delivery + Mark Out for Delivery (disabled until assigned)', () => {
     const unassigned = getAvailableActions(order('READY', 'DELIVERY'), manager);
-    expect(unassigned.map((a) => a.key)).toEqual(['ASSIGN_DELIVERY', 'MARK_OUT_FOR_DELIVERY', 'CANCEL', 'PRINT_CUSTOMER', 'PRINT_KITCHEN', 'PRINT_TOKEN']);
+    expect(unassigned.map((a) => a.key)).toEqual(['ASSIGN_DELIVERY', 'MARK_OUT_FOR_DELIVERY', 'CANCEL', 'PRINT_CUSTOMER', 'PRINT_KITCHEN']);
     expect(unassigned.find((a) => a.key === 'MARK_OUT_FOR_DELIVERY')!.enabled).toBe(false);
     const assigned = getAvailableActions(order('READY', 'DELIVERY', { deliveryStaffId: 'rider-1' }), manager);
     expect(assigned.find((a) => a.key === 'MARK_OUT_FOR_DELIVERY')!.enabled).toBe(true);
@@ -281,32 +281,17 @@ describe('available actions (§15) — what the dashboard may render', () => {
       expect(k).not.toContain('ASSIGN_DELIVERY');
     }
   });
-  it('OUT_FOR_DELIVERY: Complete + Print Customer (no kitchen print)', () => {
+  it('OUT_FOR_DELIVERY: Complete + Print Bill (no kitchen print)', () => {
     const k = keys(order('OUT_FOR_DELIVERY', 'DELIVERY', { deliveryStaffId: 'r' }), manager);
     expect(k).toContain('COMPLETE');
     expect(k).toContain('PRINT_CUSTOMER');
     expect(k).not.toContain('PRINT_KITCHEN');
   });
-  it('terminal states: View + prints only — no status-changing action', () => {
-    for (const s of ['COMPLETED', 'CANCELLED'] as OrderStatus[]) {
-      const actions = getAvailableActions(order(s, 'TAKEAWAY'), staff('OWNER'));
-      expect(actions.map((a) => a.key)).toEqual(['VIEW', 'PRINT_CUSTOMER', 'PRINT_TOKEN']);
-      expect(actions.some((a) => a.kind === 'STATUS')).toBe(false);
-    }
-  });
-  it('Print Token is offered to OWNER, MANAGER and CASHIER only', () => {
-    for (const role of ['OWNER', 'MANAGER', 'CASHIER'] as RoleName[]) {
-      expect(keys(order('PENDING', 'TAKEAWAY'), staff(role)), role).toContain('PRINT_TOKEN');
-    }
-    for (const role of ['KITCHEN', 'INVENTORY', 'DELIVERY'] as RoleName[]) {
-      expect(keys(order('PENDING', 'TAKEAWAY'), staff(role)), role).not.toContain('PRINT_TOKEN');
-    }
-    expect(keys(order('PENDING', 'TAKEAWAY'), guest)).not.toContain('PRINT_TOKEN');
-    expect(keys(order('PENDING', 'TAKEAWAY'), customer())).not.toContain('PRINT_TOKEN');
-  });
-  it('a token can be re-printed on closed orders too', () => {
-    expect(keys(order('COMPLETED', 'TAKEAWAY'), cashier)).toContain('PRINT_TOKEN');
-    expect(keys(order('CANCELLED', 'TAKEAWAY'), cashier)).toContain('PRINT_TOKEN');
+  it('terminal states: bills can be reprinted after completion, never for cancelled orders', () => {
+    const completed = getAvailableActions(order('COMPLETED', 'TAKEAWAY'), staff('OWNER'));
+    expect(completed.map((a) => a.key)).toEqual(['VIEW', 'PRINT_CUSTOMER']);
+    expect(completed.some((a) => a.kind === 'STATUS')).toBe(false);
+    expect(getAvailableActions(order('CANCELLED', 'TAKEAWAY'), staff('OWNER')).map((a) => a.key)).toEqual(['VIEW']);
   });
   it('a customer only ever sees Cancel, and only while it is allowed', () => {
     const own = { customerId: 'cust-1' };

@@ -16,7 +16,6 @@ export type OrderActionKey =
   | 'CANCEL'
   | 'PRINT_CUSTOMER'
   | 'PRINT_KITCHEN'
-  | 'PRINT_TOKEN'
   | 'VIEW';
 
 /** Computed by the backend state machine for the logged-in user — the UI renders exactly these and nothing else. */
@@ -137,6 +136,7 @@ export interface Order {
     quantity: number;
     lineTotal: number;
     selectedModifiers: { modifierName: string; optionName: string; priceDelta: number }[];
+    notes?: string;
   }[];
   subtotal: number;
   discount: number;

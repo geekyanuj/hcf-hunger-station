@@ -15,8 +15,7 @@ export const PrintController = {
 
   printToken: asyncHandler(async (req: Request, res: Response) => {
     const result = await PrintService.printToken(req.params.orderId, staff(req), { copies: req.body?.copies });
-    const message = result.printed ? 'Token sent to printer' : 'No printer connected - use browser print';
-    return sendSuccess(res, result, message);
+    return sendSuccess(res, result, 'Token ready for browser print preview');
   }),
 
   previewToken: asyncHandler(async (req: Request, res: Response) =>
@@ -25,7 +24,7 @@ export const PrintController = {
 
   testPrint: asyncHandler(async (req: Request, res: Response) => {
     const result = await PrintService.testPrint(staff(req), req.body.outletId);
-    return sendSuccess(res, result, result.printed ? 'Test slip sent to printer' : 'No printer connected - use browser print');
+    return sendSuccess(res, result, 'Test slip ready for browser print preview');
   }),
 
   jobs: asyncHandler(async (req: Request, res: Response) =>

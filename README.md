@@ -67,7 +67,7 @@ Key variables (see `.env.example` for the full list and defaults):
 | `CORS_ORIGIN` | Allowed frontend origin |
 | `PAYMENT_PROVIDER` | `MOCK` (see §8 and `docs/SECURITY.md`) |
 | `PAYMENT_WEBHOOK_SECRET` | HMAC secret webhooks are signed/verified with — **must** be changed in production |
-| `PRINTER_DRIVER` (+ `PRINTER_HOST`, `PRINTER_PORT`, `PRINTER_DEVICE_PATH`, `PRINTER_PAPER_WIDTH`, ...) | Thermal token printer. Default `DISABLED` = browser print. See `docs/PRINTING.md` |
+| `PRINTER_COPIES`, `PRINTER_FOOTER` | Legacy token settings; direct printer output is paused. Browser tickets use 58 mm paper. See `docs/PRINTING.md` |
 | `VITE_API_BASE_URL` / `VITE_SOCKET_URL` | Frontend → API/socket endpoints |
 
 Never commit a real `.env` file. Secrets are read only from environment
@@ -170,11 +170,11 @@ address. If not, they are sent to the *Delivery details* page, then return to wh
 Saved addresses can be picked, edited or removed at checkout and on the Account page. The check
 lives in `GET /customers/me` (`delivery.ready` / `delivery.missing`).
 
-**Token printing** (Owner, Manager, Cashier - permission `tokens.print`): a *Print Token* button
-on every order (Current Orders) and in the POS (with an optional *Auto-print token* switch).
-Works immediately through the browser print dialog; connect a thermal printer by setting
-`PRINTER_*` variables in the API environment - see **[docs/PRINTING.md](docs/PRINTING.md)**.
-*Admin -> Printer* shows the connection, prints a test slip and lists recent prints.
+**Browser printing** (58 mm): POS orders can print a kitchen token with quantities,
+rates, amounts, and an optional kitchen comment. After kitchen marks the order Ready,
+staff can print the customer bill. Both open the browser print preview; direct ESC/POS
+output is paused. *Admin -> Browser Printing* previews a test slip and lists recent
+preview requests. See **[docs/PRINTING.md](docs/PRINTING.md)**.
 
 **Reset dashboard** (Owner only - permission `dashboard.reset`): *Admin -> Dashboard -> Reset
 dashboard* asks for the owner's password (verified on the server; 5 wrong tries lock it for 15
@@ -210,10 +210,9 @@ integration) knows exactly what to plug in.
 - **Recipe unit conversion is mass/volume only** (kg↔g, litre↔ml) — a
   recipe and its inventory item must use the exact same count unit
   (piece/packet/box).
-- **No printer/ESC-POS hardware integration** — the printable-receipt
-  architecture (`GET /orders/:id/receipt`) returns structured data; the POS
-  calls the browser's native `window.print()` on it rather than talking to
-  a thermal printer driver.
+- **Direct ESC/POS printer output is paused** — kitchen tokens and customer
+  bills open browser print preview at 58 mm; the browser/printer driver handles
+  the actual print.
 - **KDS sound notification** is a plain Web Audio tone, not a configurable
   sound library.
 

@@ -2,9 +2,9 @@ import { Schema, model, Document, Types } from 'mongoose';
 
 export type PrintJobType = 'TOKEN' | 'TEST';
 /**
- * PRINTED  - bytes were delivered to the thermal printer.
- * BROWSER  - no printer driver is active; the web app printed through the browser instead.
- * FAILED   - the printer driver was active but delivery failed (see `error`).
+ * PRINTED  - legacy: bytes were delivered to a thermal printer.
+ * BROWSER  - a browser print preview was prepared.
+ * FAILED   - legacy: direct printer delivery failed (see `error`).
  */
 export type PrintJobStatus = 'PRINTED' | 'BROWSER' | 'FAILED';
 

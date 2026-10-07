@@ -46,7 +46,7 @@ export const PERMISSIONS = [
   'delivery.read',
   'delivery.update',
   'customers.manage',
-  /** Print order tokens on the thermal printer (OWNER, MANAGER, CASHIER). */
+  /** Open order tokens in browser print preview (OWNER, MANAGER, CASHIER). */
   'tokens.print',
   /** Reset the admin dashboard baseline (password re-entry required). OWNER only by default. */
   'dashboard.reset',

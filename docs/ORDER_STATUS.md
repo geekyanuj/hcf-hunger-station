@@ -98,8 +98,9 @@ dropdown, nothing status-changing on terminal orders. Actions per status:
 PENDING *Confirm · Cancel*; CONFIRMED *Start Preparing · Cancel*; PREPARING
 *Mark Ready · (Cancel if permitted)*; READY-Parcel *Assign Delivery · Mark Out
 for Delivery*; READY-Take/Dine *Complete*; OUT_FOR_DELIVERY *Complete*;
-COMPLETED/CANCELLED *View*; plus *Print Customer* / *Print Kitchen* where the
-spec lists them.
+COMPLETED/CANCELLED *View*. Kitchen tokens are available while the order is
+active; the customer bill appears only at READY, OUT_FOR_DELIVERY, or COMPLETED
+(never for cancelled orders).
 
 Customer wording (never the enum): Order Received · Order Confirmed · Preparing
 Your Order · Ready for Pickup (Take) / Your Food Is Ready (Dine) / Ready for

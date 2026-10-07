@@ -30,11 +30,9 @@ export interface ReceiptData {
 
 /**
  * Produces the structured data a receipt needs. This is the "printable
- * receipt architecture" required by the spec: rather than hard-coding a
- * printer/ESC-POS integration (which needs real hardware to test), the API
- * returns clean structured data that any renderer — the POS's browser-print
- * view (see apps/web POS Receipt component), a thermal printer driver, or a
- * PDF export — can consume without re-deriving totals.
+ * receipt architecture" required by the spec: the API returns clean
+ * structured data for the browser's 58 mm customer-bill renderer without
+ * requiring the client to re-derive totals.
  */
 export const ReceiptService = {
   async build(orderId: string): Promise<ReceiptData> {
