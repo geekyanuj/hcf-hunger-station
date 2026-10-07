@@ -54,8 +54,6 @@ services:
       # Direct ESC/POS output is paused; browser layouts target a 58 mm roll.
       PRINTER_DRIVER: ${PRINTER_DRIVER:-DISABLED}
       PRINTER_COPIES: ${PRINTER_COPIES:-1}
-      PRINTER_FOOTER: "${PRINTER_FOOTER:-Thank you! Visit again}"
-      PRINTER_COPIES: ${PRINTER_COPIES:-1}
       PRINTER_FOOTER: ${PRINTER_FOOTER:-Thank you! Visit again}
     depends_on:
       mongo:
