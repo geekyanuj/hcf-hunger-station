@@ -102,7 +102,9 @@ export function printKitchenToken(order: Order) {
       <div class="columns"><b>Product</b><b>Qty</b><b>Rate</b><b>Amount</b></div>
       <div class="rule"></div>${items}
       ${order.customerNotes ? `<div class="rule"></div><p><b>Comment</b></p><p class="note">${esc(order.customerNotes)}</p>` : ''}
-      <div class="rule"></div><div class="line total"><span>Total</span><span>${esc(order.total.toFixed(2))}</span></div>`
+      <div class="rule"></div><div class="line total"><span>Total</span><span>${esc(order.total.toFixed(2))}</span></div>
+      <br><br><br><br><br><br><br>
+      `
   );
 }
 
