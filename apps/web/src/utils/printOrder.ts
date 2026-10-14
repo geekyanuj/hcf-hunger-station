@@ -150,7 +150,7 @@ function receiptBody(receipt: Receipt) {
     <div class="line"><span>Item Value</span><span>${esc(receipt.subtotal.toFixed(2))}</span></div>
     ${receipt.tax === 0 ? '<div class="line"><span>GST Exempt</span><span>0.00</span></div>' : ''}
     <div class="rule"></div>
-    <p class="center">THANKS FOR VISIT<br>HAVE A NICE DAY :-)</p>`;
+    <p class="center">THANKS FOR VISITING<br>HAVE A NICE DAY :-)</p>`;
 }
 
 /** Uses server-computed receipt totals and opens the browser's 58 mm print preview. */
