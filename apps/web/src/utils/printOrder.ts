@@ -136,7 +136,7 @@ export function printKitchenToken(order: Order) {
         <p class="item-name">${esc(item.name)}</p>
         ${item.selectedModifiers.length ? `<p class="item-options">${esc(item.selectedModifiers.map((modifier) => modifier.optionName).join(", "))}</p>` : ""}
         ${item.notes ? `<p class="note">Note: ${esc(item.notes)}</p>` : ""}
-        <div class="columns"><span></span><span>${esc(item.quantity)}</span><span>${esc(rate.toFixed(2))}</span><span>${esc(item.lineTotal.toFixed(2))}</span></div>
+        <div class="columns"><span></span><span><strong>${esc(item.quantity)}</strong></span><span>${esc(rate.toFixed(2))}</span><span>${esc(item.lineTotal.toFixed(2))}</span></div>
       </section>`;
     })
     .join("");
@@ -167,7 +167,7 @@ function receiptBody(receipt: Receipt) {
       return `<section>
         <p class="item-name">${esc(item.name)}</p>
         ${item.modifiers.length ? `<p class="item-options">${esc(item.modifiers.join(", "))}</p>` : ""}
-        <div class="columns"><span></span><span>${esc(item.quantity)}</span><span>${esc(rate.toFixed(2))}</span><span>${esc(item.lineTotal.toFixed(2))}</span></div>
+        <div class="columns"><span></span><span><strong>${esc(item.quantity)}</strong></span><span>${esc(rate.toFixed(2))}</span><span>${esc(item.lineTotal.toFixed(2))}</span></div>
       </section>`;
     })
     .join("");
