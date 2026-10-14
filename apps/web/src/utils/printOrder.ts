@@ -90,14 +90,14 @@ function openPrintWindow(title: string): Window {
 
 function printDocument(printWindow: Window, title: string, body: string) {
   printWindow.document.title = title;
-  printWindow.document.body.innerHTML = body;
 
+  // Preserve your existing receipt HTML and CSS.
+  printWindow.document.body.innerHTML = body;
   printWindow.focus();
 
   const print = () => {
     if (printWindow.closed) return;
 
-    // Wait until the browser has laid out the receipt.
     printWindow.requestAnimationFrame(() => {
       printWindow.requestAnimationFrame(() => {
         if (!printWindow.closed) {
@@ -149,12 +149,12 @@ export function printKitchenToken(order: Order) {
       <div class="columns"><b>Product</b><b>Qty</b><b>Rate</b><b>Amount</b></div>
       <div class="rule"></div>${items}
       ${order.customerNotes ? `<div class="rule"></div><p><b>Comment</b></p><p class="note">${esc(order.customerNotes)}</p>` : ""}
-      <div class="rule"></div><div class="line total"><span>Total</span><span>${esc(order.total.toFixed(2))}</span></div>
+      <div class="rule"></div>
+      <p class="center">--- END OF ORDER ---</p>
+      <p class="center muted">PLEASE PREPARE AS ORDERED</p>
       <p>&nbsp;</p>
-      <p>&nbsp;</p>
-      <p>&nbsp;</p>
-      <p>&nbsp;</p>
-      <p>&nbsp;</p>
+      <p>&nbsp;<br>
+      -------------------------------------------------</p>
       `,
   );
 }
@@ -218,12 +218,16 @@ function receiptBody(receipt: Receipt) {
     <div class="line"><span>Item Value</span><span>${esc(receipt.subtotal.toFixed(2))}</span></div>
     ${receipt.tax === 0 ? '<div class="line"><span>GST Exempt</span><span>0.00</span></div>' : ""}
     <div class="rule"></div>
-    <p class="center">THANKS FOR VISITING<br>HAVE A NICE DAY :-)</p>
-    <p>&nbsp;</p>
-    <p>&nbsp;</p>
-    <p>&nbsp;</p>
-    <p>&nbsp;</p>
-    <p>&nbsp;</p>`;
+    <p class="center">
+    THANK YOU FOR VISITING!
+    <br>
+    WE HOPE TO SEE YOU AGAIN
+    <br>
+    <br>
+    --- HAVE A NICE DAY ---
+    </p>
+    -------------------------------- 
+    <br> --------------------------------`;
 }
 
 /** Uses server-computed receipt totals and opens the browser's 58 mm print preview. */
