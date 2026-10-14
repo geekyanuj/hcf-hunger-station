@@ -73,19 +73,45 @@ function openPrintWindow(title: string): Window {
   return printWindow;
 }
 
+// function printDocument(printWindow: Window, title: string, body: string) {
+//   printWindow.document.title = title;
+//   printWindow.document.body.innerHTML = body;
+//   printWindow.focus();
+
+//   let hasPrinted = false;
+//   const print = () => {
+//     if (hasPrinted || printWindow.closed) return;
+//     hasPrinted = true;
+//     printWindow.print();
+//   };
+//   printWindow.onload = print;
+//   window.setTimeout(print, 400);
+// }
+
 function printDocument(printWindow: Window, title: string, body: string) {
   printWindow.document.title = title;
   printWindow.document.body.innerHTML = body;
+
   printWindow.focus();
 
-  let hasPrinted = false;
   const print = () => {
-    if (hasPrinted || printWindow.closed) return;
-    hasPrinted = true;
-    printWindow.print();
+    if (printWindow.closed) return;
+
+    // Wait until the browser has laid out the receipt.
+    printWindow.requestAnimationFrame(() => {
+      printWindow.requestAnimationFrame(() => {
+        if (!printWindow.closed) {
+          printWindow.print();
+        }
+      });
+    });
   };
-  printWindow.onload = print;
-  window.setTimeout(print, 400);
+
+  if (printWindow.document.readyState === "complete") {
+    print();
+  } else {
+    printWindow.addEventListener("load", print, { once: true });
+  }
 }
 
 function orderHeading(
