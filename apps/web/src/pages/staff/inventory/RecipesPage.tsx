@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, Calculator } from 'lucide-react';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
-import { RecipeApi, InventoryApi, MenuAdminApi } from '@/services/staffApi';
+import { RecipeApi, InventoryApi, MenuAdminApi } from '@/services/staffApi1';
 import { Card, CardContent, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';

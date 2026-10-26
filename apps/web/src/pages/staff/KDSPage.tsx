@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, AlertTriangle, Volume2, VolumeX } from 'lucide-react';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
-import { KitchenApi } from '@/services/staffApi';
+import { KitchenApi } from '@/services/staffApi1';
 import { getStaffSocket } from '@/services/socketClient';
 import { Badge } from '@/components/ui/primitives';
 import { OrderActions } from '@/components/staff/OrderActions';

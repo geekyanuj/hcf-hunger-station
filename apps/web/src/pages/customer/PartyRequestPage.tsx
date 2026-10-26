@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { PartyPopper } from 'lucide-react';
 import { OutletApi } from '@/services/domainApi';
-import { PartyOrderApi } from '@/services/staffApi';
+import { PartyOrderApi } from '@/services/staffApi1';
 import { Card, CardContent, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
-import { InventoryApi } from '@/services/staffApi';
+import { InventoryApi } from '@/services/staffApi1';
 import { Card, CardContent, Badge } from '@/components/ui/primitives';
 import { cn } from '@/utils/cn';
 

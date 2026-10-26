@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/apiResponse';
 import { DashboardService } from '../services/dashboard.service';
-import { resolveOutletScope } from './reportScope.util';
+import { resolveOutletScope } from './reportScope.util1';
 import { DashboardResetService } from '../services/dashboardReset.service';
 
 export const DashboardController = {

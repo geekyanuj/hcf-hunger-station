@@ -1,5 +1,5 @@
 import { Order } from "@/types/domain";
-import { StaffOrderApi } from "@/services/staffApi";
+import { StaffOrderApi } from "@/services/staffApi1";
 import { ORDER_TYPE_LABEL } from "./orderStatus";
 
 type Receipt = {

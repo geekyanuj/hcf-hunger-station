@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Leaf, Flame, ImagePlus, Percent, Ban, CheckCircle2 } from 'lucide-react';
-import { MenuAdminApi } from '@/services/staffApi';
+import { MenuAdminApi } from '@/services/staffApi1';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 import { Card, CardContent, Badge, Input, Skeleton } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';

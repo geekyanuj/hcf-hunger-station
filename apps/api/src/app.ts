@@ -13,6 +13,9 @@ import { globalRateLimiter, sanitizeInput } from './middleware/security';
 
 export function createApp(): Application {
   const app = express();
+  // Trust exactly one reverse-proxy hop (Nginx).
+  // Only safe if requests cannot bypass Nginx and reach Express directly.
+  app.set('trust proxy', 1);
 
   app.disable('x-powered-by');
   app.use(helmet());

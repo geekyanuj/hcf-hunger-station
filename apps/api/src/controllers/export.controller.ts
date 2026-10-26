@@ -7,6 +7,8 @@ import { InventoryItem } from '../models/InventoryItem';
 import { Purchase } from '../models/Purchase';
 import { Wastage } from '../models/Wastage';
 import { Customer } from '../models/Customer';
+import { AnalyticsService } from '../services/analytics.service';
+import { parseDateRange, resolveOutletScope } from './reportScope.util';
 
 function sendCsv(res: Response, filename: string, csv: string) {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
@@ -96,5 +98,51 @@ export const ExportController = {
       { key: 'createdAt', header: 'Joined' },
     ]);
     sendCsv(res, 'customers.csv', csv);
+  }),
+
+  /** Downloads item-level sales with the source order reference and a revenue total. */
+  analyticsReport: asyncHandler(async (req: Request, res: Response) => {
+    const scope = resolveOutletScope(req);
+    const range = parseDateRange(req);
+    const itemSales = await AnalyticsService.itemSalesReport(scope, range);
+    const totalQuantity = itemSales.reduce((sum, row) => sum + Number(row.quantity ?? 0), 0);
+    const totalRevenue = itemSales.reduce((sum, row) => sum + Number(row.totalRevenue ?? 0), 0);
+    const formatLocalDate = (date: Date) => new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+    const columns = [
+      { key: 'date', header: 'Date' },
+      { key: 'item', header: 'Item' },
+      { key: 'quantity', header: 'Quantity' },
+      { key: 'unitPrice', header: 'Unit Price' },
+      { key: 'totalRevenue', header: 'Total Revenue' },
+      { key: 'reference', header: 'Reference (Order No.)' },
+    ];
+    const rows: Record<string, unknown>[] = itemSales.map((row) => ({
+      date: row.date,
+      item: row.item,
+      quantity: row.quantity,
+      unitPrice: row.unitPrice,
+      totalRevenue: row.totalRevenue,
+      reference: row.reference,
+    }));
+    rows.push({
+      date: '',
+      item: 'TOTAL',
+      quantity: totalQuantity,
+      unitPrice: '',
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      reference: '',
+    });
+    const csv = `\uFEFF${toCsv(rows, columns).replace(/\r?\n/g, '\r\n')}`;
+
+    const dateTag = `${formatLocalDate(range.from)}_to_${formatLocalDate(range.to)}`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="hfc-analytics-${dateTag}.csv"`);
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).send(csv);
   }),
 };

@@ -10,5 +10,6 @@ router.get('/inventory.csv', authenticate, requireStaff, authorize('exports.read
 router.get('/purchases.csv', authenticate, requireStaff, authorize('exports.read'), ExportController.purchases);
 router.get('/wastage.csv', authenticate, requireStaff, authorize('exports.read'), ExportController.wastage);
 router.get('/customers.csv', authenticate, requireStaff, authorize('customers.manage'), ExportController.customers);
+router.get('/analytics.csv', authenticate, requireStaff, authorize('analytics.read'), ExportController.analyticsReport);
 
 export default router;

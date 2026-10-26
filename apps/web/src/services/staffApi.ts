@@ -6,7 +6,7 @@ export const StaffAuthApi = {
 
 // ---------- Orders / POS / Payments ----------
 export const StaffOrderApi = {
-  create: async (payload: Record<string, unknown>): Promise<import('@/types/domain').Order> => (await api.post('/orders', payload)).data.data,
+  create: async (payload: Record<string, unknown>) => (await api.post('/orders', payload)).data.data,
   priceCart: async (payload: Record<string, unknown>) => (await api.post('/orders/price', payload)).data.data,
   list: async (outletId: string, params: Record<string, unknown> = {}) =>
     (await api.get('/orders', { params: { outletId, ...params } })).data,
@@ -111,62 +111,27 @@ export const MenuAdminApi = {
 
 export const DashboardApi = {
   overview: async (outletId: string) => (await api.get('/dashboard/overview', { params: { outletId } })).data.data,
-  /** Owner-only. Re-enters the owner's password; the dashboard then counts from this moment (no data is deleted). */
-  reset: async (outletId: string, password: string): Promise<{ resetAt: string; resetBy: string; outletCount: number }> =>
-    (await api.post('/dashboard/reset', { password }, { params: { outletId } })).data.data,
-};
-
-// ---------- Browser token printing ----------
-export interface PrintStatus {
-  driver: 'DISABLED' | 'NETWORK' | 'FILE' | 'CONSOLE';
-  configured: boolean;
-  /** Direct printing is paused; previews always use the browser. */
-  mode: 'PRINTER' | 'BROWSER';
-  target: string;
-  paperWidthMm: 58 | 80;
-  charactersPerLine: number;
-  autoCut: boolean;
-  openDrawer: boolean;
-  defaultCopies: number;
-  hint?: string;
-}
-
-export interface PrintResult {
-  printed: boolean;
-  mode: 'PRINTER' | 'BROWSER';
-  driver: string;
-  copies: number;
-  isReprint: boolean;
-  jobId: string;
-  text: string;
-  paperWidthMm: 58 | 80;
-  warning?: string;
-}
-
-export interface PrintJob {
-  _id: string;
-  tokenNumber?: string;
-  type: 'TOKEN' | 'TEST';
-  status: 'PRINTED' | 'BROWSER' | 'FAILED';
-  driver: string;
-  copies: number;
-  isReprint: boolean;
-  error?: string;
-  createdAt: string;
-  requestedBy?: { name: string; role: string };
-}
-
-export const PrintApi = {
-  status: async (): Promise<PrintStatus> => (await api.get('/print/status')).data.data,
-  printToken: async (orderId: string, copies?: number): Promise<PrintResult> =>
-    (await api.post(`/print/orders/${orderId}/token`, copies ? { copies } : {})).data.data,
-  previewToken: async (orderId: string): Promise<{ text: string; paperWidthMm: 58 | 80 }> =>
-    (await api.get(`/print/orders/${orderId}/token/preview`)).data.data,
-  test: async (outletId: string): Promise<PrintResult> => (await api.post('/print/test', { outletId })).data.data,
-  jobs: async (outletId: string, limit = 20): Promise<PrintJob[]> => (await api.get('/print/jobs', { params: { outletId, limit } })).data.data,
 };
 
 export const AnalyticsApi = {
+  downloadReport: async (params: Record<string, unknown>) => {
+    const response = await api.get('/exports/analytics.csv', { params, responseType: 'blob' });
+    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const disposition = response.headers['content-disposition'] as string | undefined;
+    const serverFilename = disposition?.match(/filename="([^"]+)"/)?.[1];
+    const from = typeof params.from === 'string' ? params.from : '';
+    const to = typeof params.to === 'string' ? params.to : '';
+    const range = typeof params.range === 'string' ? params.range : 'selected-period';
+    link.href = url;
+    link.download = serverFilename ?? `hfc-analytics-${from && to ? `${from}_to_${to}` : range}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+  },
+
   revenueOverTime: async (params: Record<string, unknown>) => (await api.get('/analytics/revenue-over-time', { params })).data.data,
   orderTypeDistribution: async (params: Record<string, unknown>) => (await api.get('/analytics/order-type-distribution', { params })).data.data,
   topProducts: async (params: Record<string, unknown>) => (await api.get('/analytics/top-products', { params })).data.data,

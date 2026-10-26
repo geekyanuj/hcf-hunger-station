@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, MonitorSmartphone, Printer, AlertTriangle } from 'lucide-react';
-import { PrintApi, PrintJob } from '@/services/staffApi';
+import { PrintApi, PrintJob } from '@/services/staffApi1';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 import { useSessionStore } from '@/stores/session.store';
 import { extractErrorMessage } from '@/services/apiClient';

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Printer, Eye, UserPlus, Ban } from 'lucide-react';
-import { StaffOrderApi, DeliveryApi } from '@/services/staffApi';
+import { StaffOrderApi, DeliveryApi } from '@/services/staffApi1';
 import { extractErrorMessage } from '@/services/apiClient';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';

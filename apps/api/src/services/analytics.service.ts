@@ -17,6 +17,7 @@ function outletMatch(outletIds: string[] | 'ALL'): Record<string, unknown> {
 }
 
 const SUCCESSFUL_ORDER_MATCH = { isDeleted: false, orderStatus: { $ne: 'CANCELLED' } };
+const BUSINESS_TIME_ZONE = 'Asia/Kolkata';
 
 export const AnalyticsService = {
   /** Revenue + order count bucketed by day across the date range - the backbone of the "revenue over time" chart. */
@@ -25,7 +26,7 @@ export const AnalyticsService = {
       { $match: { ...outletMatch(outletIds), ...SUCCESSFUL_ORDER_MATCH, createdAt: { $gte: range.from, $lte: range.to } } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: BUSINESS_TIME_ZONE } },
           revenue: { $sum: '$total' },
           orders: { $sum: 1 },
         },
@@ -59,6 +60,41 @@ export const AnalyticsService = {
       { $sort: { quantitySold: -1 } },
       { $limit: limit },
       { $project: { _id: 0, menuItemId: '$_id', name: 1, quantitySold: 1, revenue: 1 } },
+    ]);
+  },
+
+  async itemSalesReport(outletIds: string[] | 'ALL', range: DateRange) {
+    return Order.aggregate([
+      { $match: { ...outletMatch(outletIds), ...SUCCESSFUL_ORDER_MATCH, createdAt: { $gte: range.from, $lte: range.to } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: {
+            date: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: BUSINESS_TIME_ZONE } },
+            orderId: '$_id',
+            menuItemId: '$items.menuItemId',
+            unitPrice: '$items.unitPrice',
+          },
+          date: { $first: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: BUSINESS_TIME_ZONE } } },
+          item: { $first: '$items.name' },
+          quantity: { $sum: '$items.quantity' },
+          unitPrice: { $first: '$items.unitPrice' },
+          totalRevenue: { $sum: '$items.lineTotal' },
+          reference: { $first: '$orderNumber' },
+        },
+      },
+      { $sort: { date: 1, item: 1, reference: 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: 1,
+          item: 1,
+          quantity: 1,
+          unitPrice: 1,
+          totalRevenue: 1,
+          reference: 1,
+        },
+      },
     ]);
   },
 
@@ -100,8 +136,8 @@ export const AnalyticsService = {
 
   async purchaseTrend(outletIds: string[] | 'ALL', range: DateRange) {
     return Purchase.aggregate([
-      { $match: { ...outletMatch(outletIds), status: 'COMPLETED', createdAt: { $gte: range.from, $lte: range.to } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, total: { $sum: '$total' }, count: { $sum: 1 } } },
+      { $match: { ...outletMatch(outletIds), status: 'COMPLETED', purchaseDate: { $gte: range.from, $lte: range.to } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$purchaseDate', timezone: BUSINESS_TIME_ZONE } }, total: { $sum: '$total' }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
       { $project: { _id: 0, date: '$_id', total: 1, count: 1 } },
     ]);
@@ -110,7 +146,7 @@ export const AnalyticsService = {
   async wastageTrend(outletIds: string[] | 'ALL', range: DateRange) {
     return Wastage.aggregate([
       { $match: { ...outletMatch(outletIds), createdAt: { $gte: range.from, $lte: range.to } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, value: { $sum: '$estimatedValue' }, count: { $sum: 1 } } },
+      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: BUSINESS_TIME_ZONE } }, value: { $sum: '$estimatedValue' }, count: { $sum: 1 } } },
       { $sort: { _id: 1 } },
       { $project: { _id: 0, date: '$_id', value: 1, count: 1 } },
     ]);
@@ -163,7 +199,7 @@ export const AnalyticsService = {
       },
       {
         $group: {
-          _id: { $ifNull: ['$createdByUserId', '$deliveryStaffId'] },
+          _id: { $ifNull: ['$deliveryStaffId', '$createdByUserId'] },
           ordersHandled: { $sum: 1 },
           revenue: { $sum: '$total' },
         },

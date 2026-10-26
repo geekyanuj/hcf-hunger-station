@@ -5,7 +5,7 @@ import { RotateCcw, IndianRupee, ShoppingBag, TrendingUp, Bike, Package, Utensil
 import { useSessionStore } from '@/stores/session.store';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 import { OutletApi } from '@/services/domainApi';
-import { DashboardApi } from '@/services/staffApi';
+import { DashboardApi } from '@/services/staffApi1';
 import { Card, CardContent, Skeleton } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { ResetDashboardDialog } from '@/components/staff/ResetDashboardDialog';

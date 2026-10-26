@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { RotateCcw, ShieldAlert } from 'lucide-react';
-import { DashboardApi } from '@/services/staffApi';
+import { DashboardApi } from '@/services/staffApi1';
 import { extractErrorMessage } from '@/services/apiClient';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';

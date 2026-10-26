@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { DASHBOARD_STATUS_LABEL } from '@/utils/orderStatus';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X } from 'lucide-react';
-import { SearchApi } from '@/services/staffApi';
+import { SearchApi } from '@/services/staffApi1';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 
 export function GlobalSearch() {

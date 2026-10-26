@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, KeyRound } from 'lucide-react';
 import { useQuery as useQ } from '@tanstack/react-query';
 import { OutletApi } from '@/services/domainApi';
-import { StaffAdminApi } from '@/services/staffApi';
+import { StaffAdminApi } from '@/services/staffApi1';
 import { Card, CardContent, Badge, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';

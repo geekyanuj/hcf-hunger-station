@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PartyPopper, Phone } from 'lucide-react';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
-import { PartyOrderApi } from '@/services/staffApi';
+import { PartyOrderApi } from '@/services/staffApi1';
 import { Card, CardContent, Badge, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';

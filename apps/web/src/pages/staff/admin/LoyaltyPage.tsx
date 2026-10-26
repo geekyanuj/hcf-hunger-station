@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Gift } from 'lucide-react';
-import { LoyaltyApi } from '@/services/staffApi';
+import { LoyaltyApi } from '@/services/staffApi1';
 import { Card, CardContent, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';

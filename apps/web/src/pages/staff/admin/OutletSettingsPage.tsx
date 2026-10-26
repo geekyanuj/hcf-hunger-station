@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Store } from 'lucide-react';
 import { OutletApi } from '@/services/domainApi';
-import { OutletAdminApi } from '@/services/staffApi';
+import { OutletAdminApi } from '@/services/staffApi1';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 import { Card, CardContent, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';

@@ -3,6 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/apiResponse';
 import { AnalyticsService } from '../services/analytics.service';
 import { resolveOutletScope, parseDateRange } from './reportScope.util';
+import { ApiError } from '../utils/ApiError';
 
 export const AnalyticsController = {
   revenueOverTime: asyncHandler(async (req: Request, res: Response) => {
@@ -18,7 +19,11 @@ export const AnalyticsController = {
   topProducts: asyncHandler(async (req: Request, res: Response) => {
     const scope = resolveOutletScope(req);
     const range = parseDateRange(req);
-    const limit = parseInt((req.query.limit as string) ?? '10', 10);
+    const rawLimit = req.query.limit;
+    const limit = rawLimit === undefined ? 10 : Number(rawLimit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw ApiError.badRequest('limit must be an integer between 1 and 100');
+    }
     return sendSuccess(res, await AnalyticsService.topProducts(scope, range, limit));
   }),
   categoryPerformance: asyncHandler(async (req: Request, res: Response) => {

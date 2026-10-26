@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bike, MapPin, IndianRupee, User } from 'lucide-react';
 import { useSessionStore } from '@/stores/session.store';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
-import { DeliveryApi, StaffOrderApi } from '@/services/staffApi';
+import { DeliveryApi, StaffOrderApi } from '@/services/staffApi1';
 import { getStaffSocket } from '@/services/socketClient';
 import { Card, CardContent, Badge } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';

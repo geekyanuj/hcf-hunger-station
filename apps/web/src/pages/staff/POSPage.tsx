@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Trash2, Minus, Plus, Printer, Ban, Percent, UtensilsCrossed } from 'lucide-react';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
 import { MenuApi } from '@/services/domainApi';
-import { StaffOrderApi, StaffPaymentApi, TableAdminApi } from '@/services/staffApi';
+import { StaffOrderApi, StaffPaymentApi, TableAdminApi } from '@/services/staffApi1';
 import { Card, CardContent, Badge, Input } from '@/components/ui/primitives';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { AlertTriangle, XCircle, IndianRupee, TrendingDown, ShoppingCart, Trash } from 'lucide-react';
 import { useStaffOutletStore } from '@/stores/staffOutlet.store';
-import { InventoryDashboardApi } from '@/services/staffApi';
+import { InventoryDashboardApi } from '@/services/staffApi1';
 import { getStaffSocket } from '@/services/socketClient';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, Badge } from '@/components/ui/primitives';

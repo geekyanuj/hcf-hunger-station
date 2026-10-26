@@ -63,6 +63,7 @@ const PurchaseSchema = new Schema<IPurchase>(
 
 PurchaseSchema.index({ purchaseNumber: 1 }, { unique: true });
 PurchaseSchema.index({ outletId: 1, status: 1, createdAt: -1 });
+PurchaseSchema.index({ outletId: 1, status: 1, purchaseDate: -1 });
 PurchaseSchema.index({ outletId: 1, supplierId: 1 });
 
 export const Purchase = model<IPurchase>('Purchase', PurchaseSchema);

@@ -3,7 +3,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/apiResponse';
 import { ApiError } from '../utils/ApiError';
 import { SearchService } from '../services/search.service';
-import { resolveOutletScope } from './reportScope.util';
+import { resolveOutletScope } from './reportScope.util1';
 
 export const SearchController = {
   search: asyncHandler(async (req: Request, res: Response) => {
